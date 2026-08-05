@@ -114,3 +114,31 @@ main#empty { text-align: center; }
 
 h2.no-top { margin-top: 0; }
 textarea { font-family: inherit; }
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --purple: #a78bfa;
+    --purple-d: #c4b5fd;
+    --purple-l: #312e81;
+    --bg: #0e0c1d;
+    --card: #171430;
+    --text: #e7e3f1;
+    --muted: #9b97b5;
+    --line: #2c2748;
+    --red: #f87171;
+    --green: #4ade80;
+    --amber: #fbbf24;
+    --blue: #60a5fa;
+    --shadow: 0 1px 3px rgba(0, 0, 0, .4);
+  }
+  .bar { background: #6d28d9; }
+  .field input, .field select, .field textarea { background: #0e0c1d; }
+  .btn { background: #1e1a3a; }
+  .btn.danger { border-color: #7f1d1d; }
+  .check { background: #0e0c1d; }
+  .badge.in-training { background: var(--purple-l); }
+  .badge.ready { background: #451a03; }
+  .badge.released { background: #052e16; }
+  .add-btn { background: #312e81; }
+  .toast { background: #0e0c1d; border: 1px solid #2c2748; }
+}
