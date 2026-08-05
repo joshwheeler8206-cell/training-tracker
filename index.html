@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Training Tracker</title>
+  <meta name="description" content="New-hire driver training curriculum, ride-along milestones and sign-offs.">
+  <meta name="theme-color" content="#7c3aed">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Training">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="bar">
+    <h1>Training Tracker</h1>
+    <button class="btn ghost small" onclick="exportAll()">Backup</button>
+  </header>
+
+  <main id="app"></main>
+
+  <footer class="nav">
+    <button class="nav-btn active" onclick="switchView('trainees')">Trainees</button>
+    <button class="nav-btn" onclick="switchView('print')">Print / PDF</button>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
