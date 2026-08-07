@@ -1,4 +1,5 @@
 # Training Tracker
+<p align="center"><img src="icons/logo-tile.png" alt="U.S. AutoForce" width="340"></p>
 U.S. AutoForce new-hire driver training: 16-topic curriculum, ride-along milestones, progress and printable records. Offline PWA.
 
 ## Install
