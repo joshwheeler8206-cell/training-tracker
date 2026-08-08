@@ -166,12 +166,108 @@ function initStorage() {
     }
     trainees = data && Array.isArray(data) ? data : [];
     await idbSet(KEY, trainees);
+    roster = await rosterGet();
   });
 }
 
 function persist() {
   _writeQueue = _writeQueue.then(() => idbSet(KEY, trainees));
   try { localStorage.setItem('trainingTrack', JSON.stringify(trainees)); } catch (e) {}
+}
+
+/* ============================== Driver Roster (shared) ============================== */
+// usaf_roster_db / usaf_roster_v1 — the SAME IndexedDB all six AutoForce apps read,
+// so a driver profile added in the Driver Hub autofills here too.
+const ROSTER_DB = 'usaf_roster_db';
+const ROSTER_KEY = 'usaf_roster_v1';
+let roster = [];
+
+function rosterOpen() {
+  return new Promise((res, rej) => {
+    try {
+      const r = indexedDB.open(ROSTER_DB, 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('kv');
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    } catch (e) { rej(e); }
+  });
+}
+
+async function rosterGet() {
+  try {
+    const db = await rosterOpen();
+    return await new Promise((res) => {
+      const t = db.transaction('kv', 'readonly').objectStore('kv').get(ROSTER_KEY);
+      t.onsuccess = () => res(t.result || []);
+      t.onerror = () => res([]);
+    });
+  } catch (e) { return []; }
+}
+
+function rosterPut(list) {
+  const snapshot = JSON.parse(JSON.stringify(list));
+  if (typeof indexedDB !== 'undefined') {
+    return rosterOpen().then((db) => new Promise((res) => {
+      const t = db.transaction('kv', 'readwrite');
+      t.objectStore('kv').put(snapshot, ROSTER_KEY);
+      t.onsuccess = () => res();
+      t.onerror = () => res();
+    })).catch(() => {});
+  }
+  try { localStorage.setItem(ROSTER_DB + ':' + ROSTER_KEY, JSON.stringify(snapshot)); } catch (e) {}
+  return Promise.resolve();
+}
+
+function rosterFind(name) {
+  const n = String(name || '').trim().toLowerCase();
+  return roster.find((r) => String(r.name || '').trim().toLowerCase() === n) || null;
+}
+
+function rosterUpsert(entry) {
+  const name = String((entry && entry.name) || '').trim();
+  if (!name) return;
+  const existing = rosterFind(name);
+  if (existing) {
+    for (const k of ['license', 'warehouse', 'hireDate', 'trainer']) {
+      const v = String((entry && entry[k]) || '').trim();
+      if (v) existing[k] = v;
+    }
+  } else {
+    roster.push({
+      name,
+      license: String((entry && entry.license) || '').trim(),
+      warehouse: String((entry && entry.warehouse) || '').trim(),
+      hireDate: String((entry && entry.hireDate) || '').trim(),
+      trainer: String((entry && entry.trainer) || '').trim(),
+    });
+  }
+  rosterPut(roster);
+}
+
+function ensureRosterDatalist() {
+  let dl = document.getElementById('roster-names');
+  if (!dl) {
+    dl = el('datalist', { id: 'roster-names' });
+    document.body.append(dl);
+  }
+  dl.innerHTML = '';
+  for (const r of roster) dl.appendChild(el('option', { value: r.name }));
+  return dl;
+}
+
+function rosterField(labelText, id, value, fields, extra = {}) {
+  const input = el('input', { type: 'text', id, value, list: 'roster-names', autocomplete: 'off', ...extra });
+  const fill = () => {
+    const r = rosterFind(input.value);
+    if (!r) return;
+    for (const [fid, prop] of Object.entries(fields)) {
+      const n = document.getElementById(fid);
+      if (n && !n.value) n.value = r[prop] || '';
+    }
+  };
+  input.addEventListener('input', fill);
+  input.addEventListener('change', fill);
+  return el('label', { class: 'field' }, [el('span', { class: 'field-label' }, [labelText]), input]);
 }
 
 function newTrainee(name, hireDate, trainer) {
@@ -258,15 +354,13 @@ function renderTrainees() {
 }
 
 function addTrainee() {
+  ensureRosterDatalist();
   const main = $('app');
   main.innerHTML = '';
   main.append(
     el('div', { class: 'card' }, [
       el('h2', {}, ['New Trainee']),
-      el('div', { class: 'field' }, [
-        el('label', {}, ['Trainee name']),
-        el('input', { id: 'newName', placeholder: 'Full name', autocomplete: 'off' }),
-      ]),
+      rosterField('Trainee name', 'newName', '', { newTrainer: 'trainer', newHire: 'hireDate' }, { placeholder: 'Full name' }),
       el('div', { class: 'field' }, [
         el('label', {}, ['Hire date']),
         el('input', { id: 'newHire', type: 'date' }),
@@ -287,8 +381,11 @@ function addTrainee() {
 function saveNewTrainee() {
   const name = $('newName').value.trim();
   if (!name) { toast('Enter a name'); return; }
-  trainees.push(newTrainee(name, $('newHire').value, $('newTrainer').value.trim()));
+  const trainer = $('newTrainer').value.trim();
+  const hireDate = $('newHire').value;
+  trainees.push(newTrainee(name, hireDate, trainer));
   persist();
+  rosterUpsert({ name, hireDate, trainer });
   openTrainee(trainees[trainees.length - 1].id);
 }
 
