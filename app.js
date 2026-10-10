@@ -292,6 +292,15 @@ function procItem(tr, key, label) {
   return ensureProcess(tr).process.phases[key].items[label] || { d: '', i: '' };
 }
 
+// Backfills the fixed curriculum/milestone keys for records loaded from an
+// older backup or a hand-edited import, so a legacy trainee without them can't
+// crash the list/detail renders (progressOf/statusOf read these directly).
+function ensureTraits(tr) {
+  if (!tr.topics || typeof tr.topics !== 'object') { tr.topics = {}; for (const t of TOPICS) tr.topics[t] = { date: '', trainer: '' }; }
+  if (!tr.milestones || typeof tr.milestones !== 'object') { tr.milestones = {}; for (const m of MILESTONES) tr.milestones[m] = { date: '', notes: '' }; }
+  return ensureProcess(ensureCheckoffs(tr));
+}
+
 // The phase-4 "check-off fully signed" requirement is derived from the real
 // table, and "Compliance signs the last signature" is derived from the drawn
 // DOT Compliance signature — so the release can't be faked.
@@ -345,7 +354,9 @@ function toggleProcessItem(tr, key, label) {
   const ph = TRAIN_PHASES.find((p) => p.key === key);
   const a = autoItemPass(tr, ph, label);
   if (a !== null) {
-    if (!a) toast('Check-Off not fully signed yet (' + coCount(tr) + '/' + CHECKOFF_TOTAL + ') — finish the table above.');
+    if (!a) toast(label.indexOf('last signature') >= 0
+      ? 'Sign the DOT Compliance line in Digital Sign-Off first.'
+      : 'Check-Off not fully signed yet (' + coCount(tr) + '/' + CHECKOFF_TOTAL + ') — finish the table above.');
     return;
   }
   if (key !== 'p1' && !prevPhasesDone(tr, key)) { toast('Complete the previous phase first.'); return; }
@@ -518,6 +529,7 @@ function initStorage() {
       if (legacy) { try { data = JSON.parse(legacy); } catch (e) { data = null; } }
     }
     trainees = data && Array.isArray(data) ? data : [];
+    trainees = trainees.map((t) => ensureTraits(t));
     await idbSet(KEY, trainees);
     roster = await rosterGet();
   });
@@ -629,7 +641,7 @@ function newTrainee(name, hireDate, trainer) {
   for (const t of TOPICS) topics[t] = { date: '', trainer: '' };
   const milestones = {};
   for (const m of MILESTONES) milestones[m] = { date: '', notes: '' };
-  return ensureProcess(ensureCheckoffs({ id: uid(), name, hireDate, trainer, topics, milestones, notes: '', signoffs: {} }));
+  return ensureTraits({ id: uid(), name, hireDate, trainer, topics, milestones, notes: '', signoffs: {} });
 }
 
 function progressOf(tr) {
