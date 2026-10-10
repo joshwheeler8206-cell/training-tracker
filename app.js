@@ -460,7 +460,7 @@ const el = (tag, attrs = {}, children = []) => {
     if (k === 'class') n.className = v;
     else if (k === 'html') n.innerHTML = v;
     else if (k.startsWith('on')) n[k] = v;
-    else if (v !== undefined && v !== null) n.setAttribute(k, v);
+    else if (v !== undefined && v !== null && v !== false) n.setAttribute(k, v);
   }
   for (const c of children) {
     if (c === null || c === undefined) continue;
