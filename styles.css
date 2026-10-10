@@ -233,3 +233,19 @@ textarea { font-family: inherit; }
 .pr-item .check { width: 24px; height: 24px; font-size: 13px; border-radius: 7px; }
 .pr-item.done .topic-name { color: var(--green); }
 .pr-contacts { margin-top: 4px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: #f8fafc; }
+
+/* ---------- Digital Sign-Off ---------- */
+.sigpad-wrap { margin: 8px 0 12px; }
+.sigpad-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.sigpad-label { font-size: 12px; font-weight: 600; color: var(--muted); }
+.sigpad {
+  width: 100%;
+  height: 140px;
+  border: 1.5px dashed var(--line);
+  border-radius: 10px;
+  background: #fff;
+  touch-action: none;
+}
+.sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 560px) { .sig-grid { grid-template-columns: 1fr; } }
+.sig-grid .sigpad { height: 120px; }

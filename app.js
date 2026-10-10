@@ -96,6 +96,120 @@ function coCount(tr) {
   return Object.values(tr.checkoffs || {}).filter((s) => s && s.date).length;
 }
 
+/* ---------- Digital Sign-Off ---------- */
+// Each new-hire record carries up to four drawn signatures (trainer, trainee,
+// ops leader, DOT compliance) plus a sign-off date — a full set of inputs, one
+// per person, saved on the trainee row and embedded into the printed record.
+
+const SIGNOFF_ROLES = [
+  { key: 'trainer', label: 'Trainer Signature' },
+  { key: 'driver', label: 'Trainee (Driver) Signature' },
+  { key: 'opsLeader', label: 'Operations Leader Signature' },
+  { key: 'dot', label: 'DOT Compliance Signature' },
+];
+
+function ensureSignoffs(tr) {
+  if (!tr.signoffs || typeof tr.signoffs !== 'object') tr.signoffs = {};
+  for (const r of SIGNOFF_ROLES) if (tr.signoffs[r.key] === undefined || tr.signoffs[r.key] === null) tr.signoffs[r.key] = '';
+  if (!tr.signoffs.date) tr.signoffs.date = '';
+  return tr.signoffs;
+}
+
+function makeSigPad(label, initial) {
+  const wrap = el('div', { class: 'sigpad-wrap' });
+  const canvas = el('canvas', { class: 'sigpad', width: 600, height: 200 });
+  const ctx = canvas.getContext ? canvas.getContext('2d') : null;
+  if (ctx) {
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (initial && typeof Image !== 'undefined') {
+      const img = new Image();
+      img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      img.src = initial;
+    }
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#111827';
+    let drawing = false;
+    const pos = (e) => {
+      const r = canvas.getBoundingClientRect();
+      const src = e.touches ? e.touches[0] : e;
+      return { x: (src.clientX - r.left) * (canvas.width / r.width), y: (src.clientY - r.top) * (canvas.height / r.height) };
+    };
+    const down = (e) => { e.preventDefault(); drawing = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+    const move = (e) => { if (!drawing) return; e.preventDefault(); const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+    const up = () => (drawing = false);
+    canvas.addEventListener('mousedown', down);
+    canvas.addEventListener('mousemove', move);
+    canvas.addEventListener('mouseup', up);
+    canvas.addEventListener('mouseleave', up);
+    canvas.addEventListener('touchstart', down, { passive: false });
+    canvas.addEventListener('touchmove', move, { passive: false });
+    canvas.addEventListener('touchend', up);
+  }
+  const bar = el('div', { class: 'sigpad-bar' });
+  bar.appendChild(el('span', { class: 'sigpad-label' }, [label]));
+  bar.appendChild(el('button', {
+    class: 'btn ghost small',
+    onclick: () => { if (ctx) { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); } },
+  }, ['Clear']));
+  wrap.appendChild(bar);
+  wrap.appendChild(canvas);
+  return {
+    wrap,
+    canvas,
+    get: () => (ctx && ctx.getImageData && ctx.getImageData(0, 0, canvas.width, canvas.height).data.some((v, i) => i % 4 === 3 && v > 0) ? canvas.toDataURL() : null),
+  };
+}
+
+function renderSignoffCard(tr) {
+  ensureSignoffs(tr);
+  const pads = {};
+  const card = el('div', { class: 'card' }, [
+    el('div', { class: 'section-head' }, [el('h2', { class: 'co-sum', style: 'margin:0' }, ['Digital Sign-Off'])]),
+    el('div', { class: 'sub', style: 'color:var(--muted);font-size:12px' }, ['One signature per person. Draw (finger, mouse, or stylus) and tap Save Signatures. They\'re embedded into this driver\'s printed record.']),
+  ]);
+  const grid = el('div', { class: 'sig-grid' });
+  for (const r of SIGNOFF_ROLES) {
+    pads[r.key] = makeSigPad(r.label, tr.signoffs[r.key] || null);
+    grid.appendChild(pads[r.key].wrap);
+  }
+  card.appendChild(grid);
+  card.appendChild(el('label', { class: 'field' }, [
+    el('span', { class: 'field-label' }, ['Sign-off Date']),
+    el('input', { type: 'date', id: 'signoffDate', value: tr.signoffs.date || todayISO(), onchange: (e) => { tr.signoffs.date = e.target.value; } }),
+  ]));
+  card.appendChild(el('div', { class: 'btn-row' }, [
+    el('button', { class: 'btn primary', onclick: () => saveSignoffs(tr, pads) }, ['Save Signatures']),
+    el('button', { class: 'btn ghost small danger', onclick: () => clearSignoffs(tr) }, ['Clear All']),
+  ]));
+  return card;
+}
+
+function saveSignoffs(tr, pads) {
+  ensureSignoffs(tr);
+  const dateInput = document.getElementById('signoffDate');
+  if (dateInput) tr.signoffs.date = dateInput.value;
+  let any = false;
+  for (const r of SIGNOFF_ROLES) {
+    tr.signoffs[r.key] = pads[r.key].get() || '';
+    if (tr.signoffs[r.key]) any = true;
+  }
+  persist();
+  renderTraineeDetail();
+  toast(any ? 'Signatures saved.' : 'All signatures cleared.');
+}
+
+function clearSignoffs(tr) {
+  if (!confirm('Clear ALL signatures for ' + tr.name + '?')) return;
+  ensureSignoffs(tr);
+  for (const r of SIGNOFF_ROLES) tr.signoffs[r.key] = '';
+  tr.signoffs.date = '';
+  persist();
+  renderTraineeDetail();
+  toast('Signatures cleared.');
+}
+
 /* ---------- New-Hire Driver Training Process (gated) ---------- */
 // Updated U.S. AutoForce process (2026): the new driver's file (LMS modules,
 // DQ file, road test) must be COMPLETE before they go on the road with a
@@ -179,9 +293,11 @@ function procItem(tr, key, label) {
 }
 
 // The phase-4 "check-off fully signed" requirement is derived from the real
-// table, so the release can't be faked.
+// table, and "Compliance signs the last signature" is derived from the drawn
+// DOT Compliance signature — so the release can't be faked.
 function autoItemPass(tr, ph, label) {
   if (label.indexOf('check-off fully signed') >= 0) return coCount(tr) >= CHECKOFF_TOTAL;
+  if (label.indexOf('last signature') >= 0) return !!(ensureSignoffs(tr).dot);
   return null; // manual item
 }
 
@@ -311,7 +427,7 @@ function renderProcessCard(tr) {
             el('div', {}, [
               el('div', { class: 'topic-name' }, [it + (auto && it.indexOf('check-off fully signed') >= 0 ? ' (' + coCount(tr) + '/' + CHECKOFF_TOTAL + ')' : '')]),
               el('div', { class: 'topic-meta' }, auto
-                ? (a ? 'Auto-satisfied' : 'Waiting on the check-off table')
+                ? (a ? 'Auto-satisfied' : 'Waiting on the check-off table / DOT signature')
                 : (s.d ? 'Done ' + s.d + (s.i ? ' · ' + s.i : '') : 'Not yet')),
             ]),
           ]);
@@ -513,7 +629,7 @@ function newTrainee(name, hireDate, trainer) {
   for (const t of TOPICS) topics[t] = { date: '', trainer: '' };
   const milestones = {};
   for (const m of MILESTONES) milestones[m] = { date: '', notes: '' };
-  return ensureProcess(ensureCheckoffs({ id: uid(), name, hireDate, trainer, topics, milestones, notes: '' }));
+  return ensureProcess(ensureCheckoffs({ id: uid(), name, hireDate, trainer, topics, milestones, notes: '', signoffs: {} }));
 }
 
 function progressOf(tr) {
@@ -697,7 +813,7 @@ function renderTraineeDetail() {
     ]),
   ]);
 
-  main.append(header, renderProcessCard(tr), topicsCard, renderCheckoffCard(ensureCheckoffs(tr)), milesCard, notesCard);
+  main.append(header, renderProcessCard(tr), topicsCard, renderCheckoffCard(ensureCheckoffs(tr)), renderSignoffCard(tr), milesCard, notesCard);
 }
 
 function renderCheckoffCard(tr) {
@@ -837,7 +953,7 @@ function toggleMilestone(m) {
       return;
     }
     if (m === 'Released / sign-off' && !phaseItemsDone(current, 'p4')) {
-      toast('🚫 Blocked: release requires the full "Day 5+ · Check-Off, Compliance & Release" phase (check-off fully signed, sent to compliance). Still needed: ' + processGateMsg(current).join('; '));
+      toast('🚫 Blocked: release requires the full "Day 5+ · Check-Off, Compliance & Release" phase (check-off fully signed, sent to compliance, compliance signs the last DOT signature). Still needed: ' + processGateMsg(current).join('; '));
       return;
     }
   }
@@ -982,8 +1098,10 @@ function printHtml() {
     h4 { font-size: 12.5px; margin: 12px 0 4px; color: #333; }
     ul { margin: 0 0 10px; }
     li { font-size: 12px; margin-bottom: 2px; }
-    .foot { margin-top: 30px; display: flex; gap: 60px; }
-    .sig { width: 230px; border-top: 1px solid #333; padding-top: 4px; font-size: 11px; }
+    .foot { margin-top: 26px; display: flex; flex-wrap: wrap; gap: 24px; }
+    .sig { width: 210px; border-top: 1px solid #333; padding-top: 4px; font-size: 11px; }
+    .sig img { display: block; max-height: 44px; max-width: 100%; margin-bottom: 2px; }
+    .sig .sigdate { font-size: 12px; font-weight: 600; height: 44px; display: flex; align-items: flex-end; }
     .print-brand { display: flex; align-items: center; gap: 12px; padding-bottom: 10px; margin-bottom: 14px; border-bottom: 2px solid #7c3aed; }
     .print-brand img { height: 44px; width: auto; border-radius: 6px; }
     .pb-eyebrow { font-size: 10px; font-weight: bold; letter-spacing: 1.8px; text-transform: uppercase; color: #7c3aed; }
@@ -1002,15 +1120,24 @@ function printHtml() {
     <h3>Ride-Along Milestones (${MILESTONES.length})</h3>
     <ul>${MILESTONES.map((m) => `<li>${esc(m)}</li>`).join('')}</ul>
     <h2>Driver/Trainer Check-Off</h2>
-    ${trainees.map((tr) => processPrintBlock(tr) + checkoffPrintBlock(tr)).join('')}
-    <div class="foot">
-      <div class="sig">Trainer Signature</div>
-      <div class="sig">Trainee Signature</div>
-      <div class="sig">Operations Leader Signature</div>
-      <div class="sig">DOT Compliance Signature</div>
-      <div class="sig">Date</div>
-    </div>
+    ${trainees.map((tr) => processPrintBlock(tr) + checkoffPrintBlock(tr) + signoffPrintBlock(tr)).join('')}
   </body></html>`;
+}
+
+function signoffPrintBlock(tr) {
+  ensureSignoffs(tr);
+  const s = tr.signoffs;
+  const cell = (data, label) => '<div class="sig">' +
+    (data ? '<img src="' + data + '" alt="' + esc(label) + '">' : '') +
+    '<div>' + esc(label) + '</div></div>';
+  return '<h4>Digital Sign-Off — ' + esc(tr.name) + '</h4>' +
+    '<div class="foot">' +
+    cell(s.trainer, 'Trainer Signature') +
+    cell(s.driver, 'Trainee Signature') +
+    cell(s.opsLeader, 'Operations Leader Signature') +
+    cell(s.dot, 'DOT Compliance Signature') +
+    '<div class="sig">' + (s.date ? '<div class="sigdate">' + esc(s.date) + '</div>' : '') + '<div>Date</div></div>' +
+    '</div>';
 }
 
 function processPrintBlock(tr) {
