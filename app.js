@@ -96,6 +96,241 @@ function coCount(tr) {
   return Object.values(tr.checkoffs || {}).filter((s) => s && s.date).length;
 }
 
+/* ---------- New-Hire Driver Training Process (gated) ---------- */
+// Updated U.S. AutoForce process (2026): the new driver's file (LMS modules,
+// DQ file, road test) must be COMPLETE before they go on the road with a
+// trainer. Four phases gate in order — nothing can be skipped.
+
+const REGIONS = ['Central', 'West', 'East'];
+const REGION_CONTACTS = {
+  Central: ['Paula Gerrits', 'Tim Manning', 'Doug Kellner'],
+  West: ['Paula Gerrits', 'Tim Manning', 'Mario Soria'],
+  East: ['Paula Gerrits', 'Tim Manning', 'Aaron Rowells'],
+};
+
+const TRAIN_PHASES = [
+  {
+    key: 'p1',
+    title: 'Day 1–2 · Driver File & LMS (before on-road)',
+    rule: 'GATE — this driver must NOT go on the road (with or without a trainer) until every item is complete.',
+    items: [
+      'All LMS modules completed (incl. the 6 PACE modules)',
+      'Driver DQ file completed',
+      'DQ file completed & submitted prior to driving with trainer',
+      'Road test completed & submitted electronically with DQ file',
+      'Road test done in the type of truck they will drive (not the PACE form)',
+      'Training vehicle has a working Samsara system',
+    ],
+  },
+  {
+    key: 'p2',
+    title: 'Day 3 · Trainer Drives',
+    rule: 'Trainer drives all day and gives a narrative (commentary) PACE drive.',
+    items: [
+      'Trainer drives all day (trainer + trainee on the road)',
+      'Trainer gives a narrative PACE / commentary drive',
+    ],
+  },
+  {
+    key: 'p3',
+    title: 'Day 4 · Trainee Drives',
+    rule: 'Trainee drives with the trainer in the passenger seat; the PACE evaluation drive is on day 4.',
+    items: [
+      'Trainee drives with trainer in passenger seat',
+      'PACE evaluation drive + PACE Driver Evaluation Form completed (day 4)',
+      'Trainee drives using PACE principles with trainer coaching',
+    ],
+  },
+  {
+    key: 'p4',
+    title: 'Day 5+ · Check-Off, Compliance & Release',
+    rule: 'Trainer, trainee and ops management agree ready → check-off signed → sent to region compliance → compliance releases the driver.',
+    items: [
+      'Trainer, Trainee & ops management agree the driver is ready',
+      'Driver-Trainer check-off fully signed',
+      'Check-off + PACE evaluation form sent to region compliance',
+      'Compliance confirms all compliance documents are 100%',
+      'Compliance initials / dates the compliance items',
+      'Compliance signs the last signature → released to drive on their own',
+    ],
+  },
+];
+
+const ROAD_MILES = ['Ride-along 1', 'Ride-along 2', 'Ride-along 3', 'Ride-along 4', 'Solo with shadow'];
+
+function ensureProcess(tr) {
+  if (!tr.process || typeof tr.process !== 'object') tr.process = {};
+  if (!tr.process.region || REGIONS.indexOf(tr.process.region) === -1) {
+    tr.process.region = (typeof localStorage !== 'undefined' && localStorage.getItem('trainRegion')) || 'Central';
+  }
+  if (!tr.process.phases || typeof tr.process.phases !== 'object') tr.process.phases = {};
+  for (const ph of TRAIN_PHASES) {
+    if (!tr.process.phases[ph.key]) tr.process.phases[ph.key] = { items: {} };
+    for (const it of ph.items) {
+      const s = tr.process.phases[ph.key].items[it];
+      if (!s || typeof s !== 'object') tr.process.phases[ph.key].items[it] = { d: '', i: '' };
+    }
+  }
+  return tr;
+}
+
+function procItem(tr, key, label) {
+  return ensureProcess(tr).process.phases[key].items[label] || { d: '', i: '' };
+}
+
+// The phase-4 "check-off fully signed" requirement is derived from the real
+// table, so the release can't be faked.
+function autoItemPass(tr, ph, label) {
+  if (label.indexOf('check-off fully signed') >= 0) return coCount(tr) >= CHECKOFF_TOTAL;
+  return null; // manual item
+}
+
+function phaseItemsDone(tr, key) {
+  ensureProcess(tr);
+  const ph = TRAIN_PHASES.find((p) => p.key === key);
+  if (!ph) return false;
+  return ph.items.every((it) => {
+    const a = autoItemPass(tr, ph, it);
+    if (a !== null) return a;
+    const s = procItem(tr, key, it);
+    return !!(s.d && s.d.trim());
+  });
+}
+
+function prevPhasesDone(tr, key) {
+  const i = TRAIN_PHASES.findIndex((p) => p.key === key);
+  for (let k = 0; k < i; k++) if (!phaseItemsDone(tr, TRAIN_PHASES[k].key)) return false;
+  return true;
+}
+
+function processProgress(tr) {
+  const done = TRAIN_PHASES.filter((p) => phaseItemsDone(tr, p.key)).length;
+  return { done, total: TRAIN_PHASES.length };
+}
+
+function processGateMsg(tr) {
+  return TRAIN_PHASES.filter((p) => !phaseItemsDone(tr, p.key)).map((p) => p.title);
+}
+
+function onRoad(t) {
+  const m = t.milestones || {};
+  return ROAD_MILES.some((x) => m[x] && m[x].date);
+}
+
+function setTraineeRegion(tr, region) {
+  ensureProcess(tr).process.region = region;
+  try { localStorage.setItem('trainRegion', region); } catch (e) {}
+  persist();
+  renderTraineeDetail();
+}
+
+function toggleProcessItem(tr, key, label) {
+  ensureProcess(tr);
+  const ph = TRAIN_PHASES.find((p) => p.key === key);
+  const a = autoItemPass(tr, ph, label);
+  if (a !== null) {
+    if (!a) toast('Check-Off not fully signed yet (' + coCount(tr) + '/' + CHECKOFF_TOTAL + ') — finish the table above.');
+    return;
+  }
+  if (key !== 'p1' && !prevPhasesDone(tr, key)) { toast('Complete the previous phase first.'); return; }
+  const s = procItem(tr, key, label);
+  if (s.d) { s.d = ''; s.i = ''; }
+  else { s.d = todayISO(); s.i = tr.trainer || ''; }
+  persist();
+  const phDone = phaseItemsDone(tr, key);
+  renderTraineeDetail();
+  toast(s.d ? (phDone ? 'Phase complete: ' + ph.title : 'Signed off.') : 'Cleared.');
+}
+
+function phaseMark(tr, key) {
+  ensureProcess(tr);
+  const i = TRAIN_PHASES.findIndex((p) => p.key === key);
+  if (i > 0 && !prevPhasesDone(tr, key)) { toast('Complete the "Day 1–2 · Driver File & LMS" phase first.'); return; }
+  let trainer = (tr.trainer || '').toUpperCase();
+  if (!trainer) {
+    const v = prompt('Trainer initials for this phase?', '');
+    if (v === null) return;
+    trainer = v.trim().toUpperCase();
+    if (!trainer) return;
+    tr.trainer = trainer;
+  }
+  for (const it of TRAIN_PHASES[i].items) {
+    if (autoItemPass(tr, TRAIN_PHASES[i], it) !== null) continue;
+    const s = procItem(tr, key, it);
+    if (!s.d) { s.d = todayISO(); s.i = trainer; }
+  }
+  persist();
+  renderTraineeDetail();
+  const miss = processGateMsg(tr);
+  toast(miss.length ? 'Phase signed. Still needed: ' + miss.join('; ') : 'ALL PHASES COMPLETE — driver file done.');
+}
+
+function renderProcessCard(tr) {
+  ensureProcess(tr);
+  const pp = processProgress(tr);
+  const p1ok = phaseItemsDone(tr, 'p1');
+  const ok = pp.done === pp.total;
+  const banner = ok
+    ? el('div', { class: 'pr-banner ok' }, ['✅ FILE COMPLETE — released: this driver is cleared to drive on their own.'])
+    : !p1ok
+      ? el('div', { class: 'pr-banner no' }, ['🚫 NOT CLEARED TO DRIVE — the Day 1–2 driver file (LMS modules, DQ file, road test) is incomplete. Do NOT let this driver on the road until it\'s done.'])
+      : el('div', { class: 'pr-banner warm' }, ['⚠️ Driver file complete — cleared for on-road training (Day 3+). Not yet released by compliance.']);
+
+  const regionSel = el('select', { class: 'select', onchange: (e) => setTraineeRegion(tr, e.target.value) });
+  for (const r of REGIONS) regionSel.appendChild(el('option', { value: r, selected: r === tr.process.region }, [r]));
+
+  const card = el('div', { class: 'card pr-card' }, [
+    el('div', { class: 'section-head' }, [
+      el('h2', { class: 'no-top' }, ['Driver Training Process (' + pp.done + '/' + pp.total + ' phases)']),
+      regionSel,
+    ]),
+    banner,
+  ]);
+
+  TRAIN_PHASES.forEach((ph, i) => {
+    const done = phaseItemsDone(tr, ph.key);
+    const locked = ph.key !== 'p1' && !prevPhasesDone(tr, ph.key);
+    const counts = ph.items.filter((it) => {
+      const a = autoItemPass(tr, ph, it);
+      return a !== null ? a : !!(procItem(tr, ph.key, it).d);
+    }).length;
+    card.appendChild(el('div', { class: 'pr-phase' }, [
+      el('div', { class: 'pr-head' }, [
+        el('span', { class: 'pr-title' + (done ? ' done' : '') }, [(done ? '✓ ' : locked ? '🔒 ' : '▢ ') + ph.title]),
+        el('span', { class: 'pr-n' }, [counts + '/' + ph.items.length]),
+      ]),
+      el('div', { class: 'pr-body' + (locked ? ' locked' : '') }, [
+        el('div', { class: 'pr-rule' }, [ph.rule]),
+        ...ph.items.map((it) => {
+          const a = autoItemPass(tr, ph, it);
+          const auto = a !== null;
+          const s = procItem(tr, ph.key, it);
+          const active = auto ? a : !!s.d;
+          return el('div', { class: 'pr-item' + (active ? ' done' : '') }, [
+            el('div', { class: 'check ' + (active ? 'done' : ''), onclick: () => toggleProcessItem(tr, ph.key, it) }, [active ? '✓' : (auto ? '…' : '')]),
+            el('div', {}, [
+              el('div', { class: 'topic-name' }, [it + (auto && it.indexOf('check-off fully signed') >= 0 ? ' (' + coCount(tr) + '/' + CHECKOFF_TOTAL + ')' : '')]),
+              el('div', { class: 'topic-meta' }, auto
+                ? (a ? 'Auto-satisfied' : 'Waiting on the check-off table')
+                : (s.d ? 'Done ' + s.d + (s.i ? ' · ' + s.i : '') : 'Not yet')),
+            ]),
+          ]);
+        }),
+        el('div', { class: 'btn-row', style: 'margin-top:10px' }, [
+          el('button', { class: 'btn ghost small', onclick: () => phaseMark(tr, ph.key) }, ['✓ Mark phase complete']),
+        ]),
+      ]),
+    ]));
+  });
+
+  const contacts = (REGION_CONTACTS[tr.process.region] || []).join(', ');
+  card.appendChild(el('div', { class: 'pr-contacts' }, [
+    el('div', { class: 'topic-name' }, ['Send check-off + PACE evaluation form to ' + tr.process.region + ' region: ' + contacts]),
+    el('div', { class: 'topic-meta' }, ['Compliance evaluates, initials/dates the compliance items, then signs the LAST signature to release the driver.']),
+  ]));
+  return card;
+}
+
 let trainees = [];
 let view = 'trainees';
 let current = null;
@@ -175,6 +410,7 @@ function initStorage() {
 function persist() {
   _writeQueue = _writeQueue.then(() => idbSet(KEY, trainees));
   try { localStorage.setItem('trainingTrack', JSON.stringify(trainees)); } catch (e) {}
+  scheduleAutoBackup();
 }
 
 /* ============================== Driver Roster (shared) ============================== */
@@ -277,7 +513,7 @@ function newTrainee(name, hireDate, trainer) {
   for (const t of TOPICS) topics[t] = { date: '', trainer: '' };
   const milestones = {};
   for (const m of MILESTONES) milestones[m] = { date: '', notes: '' };
-  return ensureCheckoffs({ id: uid(), name, hireDate, trainer, topics, milestones, notes: '' });
+  return ensureProcess(ensureCheckoffs({ id: uid(), name, hireDate, trainer, topics, milestones, notes: '' }));
 }
 
 function progressOf(tr) {
@@ -336,10 +572,13 @@ function renderTrainees() {
   const list = el('div', {}, sorted.map((tr) => {
     const st = statusOf(tr);
     const p = progressOf(tr);
+    ensureProcess(tr);
+    const p1ok = phaseItemsDone(tr, 'p1');
+    const warnFile = !p1ok && (onRoad(tr) || st === 'released');
     return el('div', { class: 'card row', onclick: () => openTrainee(tr.id) }, [
       el('div', {}, [
         el('div', { class: 'title' }, [tr.name]),
-        el('div', { class: 'sub' }, [`Hired ${tr.hireDate || '—'}${tr.trainer ? ' · Trainer: ' + tr.trainer : ''}`]),
+        el('div', { class: 'sub' }, [`Hired ${tr.hireDate || '—'}${tr.trainer ? ' · Trainer: ' + tr.trainer : ''}${warnFile ? ' · ⚠️ driver file incomplete' : ''}`]),
         el('div', { class: 'trainee-progress' }, [
           el('div', { class: 'track' }, [el('div', { class: 'fill', style: `width:${p.pct}%` })]),
           el('div', { class: 'pct' }, [`${p.pct}%`]),
@@ -458,7 +697,7 @@ function renderTraineeDetail() {
     ]),
   ]);
 
-  main.append(header, topicsCard, renderCheckoffCard(ensureCheckoffs(tr)), milesCard, notesCard);
+  main.append(header, renderProcessCard(tr), topicsCard, renderCheckoffCard(ensureCheckoffs(tr)), milesCard, notesCard);
 }
 
 function renderCheckoffCard(tr) {
@@ -583,6 +822,25 @@ function toggleTopic(t) {
 
 function toggleMilestone(m) {
   const s = current.milestones[m];
+  if (!s.date) {
+    ensureProcess(current);
+    if (m === 'Ride-along 1' && !phaseItemsDone(current, 'p1')) {
+      toast('🚫 Blocked: complete the "Day 1–2 · Driver File & LMS" phase (LMS modules, DQ file, road test) before this driver goes on the road with a trainer.');
+      return;
+    }
+    if (m === 'Solo with shadow' && !phaseItemsDone(current, 'p1')) {
+      toast('🚫 Blocked: the "Day 1–2 · Driver File & LMS" phase must be complete before solo & shadow.');
+      return;
+    }
+    if (m === 'Ready for release' && (!phaseItemsDone(current, 'p1') || !phaseItemsDone(current, 'p2') || !phaseItemsDone(current, 'p3'))) {
+      toast('🚫 Blocked: finish the Day 1–2 file and the Day 3 / Day 4 phases before marking "Ready for release".');
+      return;
+    }
+    if (m === 'Released / sign-off' && !phaseItemsDone(current, 'p4')) {
+      toast('🚫 Blocked: release requires the full "Day 5+ · Check-Off, Compliance & Release" phase (check-off fully signed, sent to compliance). Still needed: ' + processGateMsg(current).join('; '));
+      return;
+    }
+  }
   if (s.date) { s.date = ''; s.notes = ''; }
   else {
     s.date = todayISO();
@@ -616,6 +874,46 @@ function exportAll() {
   toast('Backup downloaded');
 }
 
+/* ---------- Auto-backup ----------
+   Keeps an off-device, recoverable copy: a timestamped JSON file drops into
+   Downloads a few seconds after you stop entering data. Debounced 15s,
+   throttled to one per 5 min, capped per session. Toggle in the Print tab. */
+const AUTOBACKUP_KEY = 'autobk_training';
+let _abEnabled = (localStorage.getItem(AUTOBACKUP_KEY) !== 'off');
+let _abTimer = null, _abLast = 0, _abCount = 0, _abPending = false;
+const AB_DELAY = 15000, AB_MIN_GAP = 300000, AB_MAX = 6;
+
+function autoBackupEnabled() { return _abEnabled; }
+function setAutoBackup(on) { _abEnabled = !!on; try { localStorage.setItem(AUTOBACKUP_KEY, on ? 'on' : 'off'); } catch (e) {} }
+function scheduleAutoBackup() { if (!_abEnabled) return; _abPending = true; clearTimeout(_abTimer); _abTimer = setTimeout(runAutoBackup, AB_DELAY); }
+function runAutoBackup() {
+  if (!_abEnabled || !_abPending) return;
+  const now = Date.now();
+  if (_abCount >= AB_MAX) { _abPending = false; return; }
+  if (_abLast && now - _abLast < AB_MIN_GAP) { _abTimer = setTimeout(runAutoBackup, AB_MIN_GAP - (now - _abLast)); return; }
+  _abPending = false; _abLast = now; _abCount++;
+  try {
+    if (!trainees.length) return;
+    const ts = new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '');
+    const data = JSON.stringify({ app: 'usaf-training', exported: todayISO(), trainees }, null, 2);
+    const a = el('a', { href: 'data:text/json;charset=utf-8,' + encodeURIComponent(data), download: 'training-tracker-auto-' + ts + '.json' });
+    document.body.append(a);
+    a.click();
+    a.remove();
+  } catch (e) {}
+}
+function autoBackupToggleUI() {
+  const ck = el('input', { type: 'checkbox', class: 'ab-ck', onchange: (e) => { setAutoBackup(e.target.checked); toast(e.target.checked ? 'Auto-backup ON' : 'Auto-backup OFF'); } });
+  ck.checked = _abEnabled;
+  return el('label', { class: 'ab-toggle' }, [
+    ck,
+    el('span', { class: 'ab-txt' }, [
+      el('span', { class: 'ab-title' }, ['Auto-backup to Downloads']),
+      el('span', { class: 'sub' }, ['Saves a timestamped backup file to Downloads a few seconds after you stop entering data (up to 6 per session).']),
+    ]),
+  ]);
+}
+
 function renderPrint() {
   const main = $('app');
   main.innerHTML = '';
@@ -625,6 +923,8 @@ function renderPrint() {
   }
   main.append(
     el('button', { class: 'btn primary full', onclick: () => openPrint() }, ['🖨️ Print / Save PDF']),
+    el('div', { style: 'height:12px' }),
+    autoBackupToggleUI(),
     el('div', { style: 'height:12px' }),
     trainees.map((tr) => {
       const st = statusOf(tr);
@@ -702,7 +1002,7 @@ function printHtml() {
     <h3>Ride-Along Milestones (${MILESTONES.length})</h3>
     <ul>${MILESTONES.map((m) => `<li>${esc(m)}</li>`).join('')}</ul>
     <h2>Driver/Trainer Check-Off</h2>
-    ${trainees.map(checkoffPrintBlock).join('')}
+    ${trainees.map((tr) => processPrintBlock(tr) + checkoffPrintBlock(tr)).join('')}
     <div class="foot">
       <div class="sig">Trainer Signature</div>
       <div class="sig">Trainee Signature</div>
@@ -711,6 +1011,34 @@ function printHtml() {
       <div class="sig">Date</div>
     </div>
   </body></html>`;
+}
+
+function processPrintBlock(tr) {
+  ensureProcess(tr);
+  const p1ok = phaseItemsDone(tr, 'p1');
+  const ok = phaseItemsDone(tr, 'p4');
+  const contacts = (REGION_CONTACTS[tr.process.region] || []).join(', ');
+  const phases = TRAIN_PHASES.map((ph, idx) => {
+    const rows = ph.items.map((it) => {
+      const a = autoItemPass(tr, ph, it);
+      const auto = a !== null;
+      const s = procItem(tr, ph.key, it);
+      const active = auto ? a : !!s.d;
+      return `<tr><td style="width:22px;text-align:center">${active ? '✓' : ''}</td>
+        <td>${esc(it)}${auto && it.indexOf('check-off fully signed') >= 0 ? ' (' + coCount(tr) + '/' + CHECKOFF_TOTAL + ')' : ''}</td>
+        <td style="width:70px">${esc(s.i)}</td>
+        <td style="width:90px">${esc(s.d)}</td></tr>`;
+    }).join('');
+    return `<h4>Phase ${idx + 1} — ${esc(ph.title)}${phaseItemsDone(tr, ph.key) ? ' ✓' : ''}</h4>
+      <p style="margin:2px 0 6px;color:#555;font-size:11px">${esc(ph.rule)}</p>
+      <table><tr><th></th><th>Requirement</th><th>Initials</th><th>Date</th></tr>${rows}</table>`;
+  }).join('');
+  return `<h3>Driver Training Process (gated)</h3>
+    <p style="margin:2px 0 8px;font-weight:700;color:${p1ok ? '#0a7a0a' : '#b00020'}">
+    Driver File Gate (Day 1–2, before on-road): ${p1ok ? 'COMPLETE — cleared to drive with trainer' : 'INCOMPLETE — driver must NOT go on the road'}</p>
+    <p style="margin:0 0 8px;font-size:11px;color:#555">Region: ${esc(tr.process.region)} · Send check-off + PACE evaluation form to: ${esc(contacts)}</p>
+    ${phases}
+    ${ok ? '<p style="margin:8px 0 0;font-weight:700;color:#0a7a0a">FILE COMPLETE — released to drive on their own.</p>' : ''}`;
 }
 
 function checkoffPrintBlock(tr) {
