@@ -871,8 +871,8 @@ function coTable(tr, g) {
     const complete = !!(s.date && s.driver && s.trainer);
     wrap.append(el('div', { class: 'co-row' + (complete ? ' done' : '') }, [
       el('div', { class: 'co-item' }, [item]),
-      el('div', { class: 'co-drv' }, [el('input', { type: 'text', class: 'co-input', maxlength: '3', placeholder: '·', value: s.driver, oninput: (e) => { s.driver = e.target.value; persist(); refreshCo(e.target); } })]),
-      el('div', { class: 'co-tr' }, [el('input', { type: 'text', class: 'co-input', maxlength: '3', placeholder: '·', value: s.trainer, oninput: (e) => { s.trainer = e.target.value; persist(); refreshCo(e.target); } })]),
+      el('div', { class: 'co-drv' }, [el('input', { type: 'text', class: 'co-input', maxlength: '3', placeholder: '·', value: s.driver, oninput: (e) => { const v = e.target.value.toUpperCase(); if (e.target.value !== v) e.target.value = v; s.driver = v; persist(); refreshCo(e.target); } })]),
+      el('div', { class: 'co-tr' }, [el('input', { type: 'text', class: 'co-input', maxlength: '3', placeholder: '·', value: s.trainer, oninput: (e) => { const v = e.target.value.toUpperCase(); if (e.target.value !== v) e.target.value = v; s.trainer = v; persist(); refreshCo(e.target); } })]),
       el('div', { class: 'co-date' }, [el('input', { type: 'date', class: 'co-input', value: s.date, onchange: (e) => { s.date = e.target.value; persist(); refreshCo(e.target); } })]),
     ]));
   }
@@ -1189,7 +1189,7 @@ function checkoffPrintBlock(tr) {
       <table><tr><th>Item</th><th>Driver Initials</th><th>Trainer Initials</th><th>Date</th></tr>
       ${g.items.map((it) => {
         const s = coItem(tr, it);
-        return `<tr><td>${esc(it)}</td><td>${esc(s.driver)}</td><td>${esc(s.trainer)}</td><td>${esc(s.date)}</td></tr>`;
+        return `<tr><td>${esc(it)}</td><td>${esc((s.driver || '').toUpperCase())}</td><td>${esc((s.trainer || '').toUpperCase())}</td><td>${esc(s.date)}</td></tr>`;
       }).join('')}
       </table>`;
   }).join('');
