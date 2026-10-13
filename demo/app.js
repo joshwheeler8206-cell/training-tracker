@@ -70,13 +70,19 @@ const CHECKOFF_GROUPS = [
     'Samsara / Elite Extra', 'Trained & understands Samsara DVIR/App',
     'Trained & understands Samsara ELD (if applicable)', 'Trained & understands Elite Extra (if applicable)',
   ]},
-  { name: 'Driver Qualification (compliance review)', items: [
+  { name: 'Driver Qualification (compliance review)', initialsLabel: 'DOT Compliance Support', items: [
     'DQ file 100% compliant', 'Road test completed', 'Medical card obtained',
     'Drug & alcohol query ran (CDL drivers)', 'All LMS modules completed',
   ]},
 ];
 
 const CHECKOFF_TOTAL = CHECKOFF_GROUPS.reduce((n, g) => n + g.items.length, 0);
+
+// Most groups are initialled by the trainer. The compliance review is signed off
+// by DOT Compliance Support instead, so its column and prompts say so.
+function coInitialsLabel(g) {
+  return (g && g.initialsLabel) || 'Trainer';
+}
 
 function coItem(tr, item) {
   return (tr.checkoffs && tr.checkoffs[item]) || { date: '', driver: '', trainer: '' };
@@ -96,6 +102,368 @@ function coCount(tr) {
   return Object.values(tr.checkoffs || {}).filter((s) => s && s.date).length;
 }
 
+/* ---------- Digital Sign-Off ---------- */
+// Each new-hire record carries up to four drawn signatures (trainer, trainee,
+// ops leader, DOT compliance) plus a sign-off date — a full set of inputs, one
+// per person, saved on the trainee row and embedded into the printed record.
+
+const SIGNOFF_ROLES = [
+  { key: 'trainer', label: 'Trainer Signature' },
+  { key: 'driver', label: 'Trainee (Driver) Signature' },
+  { key: 'opsLeader', label: 'Operations Leader Signature' },
+  { key: 'dot', label: 'DOT Compliance Signature' },
+];
+
+function ensureSignoffs(tr) {
+  if (!tr.signoffs || typeof tr.signoffs !== 'object') tr.signoffs = {};
+  for (const r of SIGNOFF_ROLES) if (tr.signoffs[r.key] === undefined || tr.signoffs[r.key] === null) tr.signoffs[r.key] = '';
+  if (!tr.signoffs.date) tr.signoffs.date = '';
+  return tr.signoffs;
+}
+
+function makeSigPad(label, initial) {
+  const wrap = el('div', { class: 'sigpad-wrap' });
+  const canvas = el('canvas', { class: 'sigpad', width: 600, height: 200 });
+  const ctx = canvas.getContext ? canvas.getContext('2d') : null;
+  if (ctx) {
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (initial && typeof Image !== 'undefined') {
+      const img = new Image();
+      img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      img.src = initial;
+    }
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#111827';
+    let drawing = false;
+    const pos = (e) => {
+      const r = canvas.getBoundingClientRect();
+      const src = e.touches ? e.touches[0] : e;
+      return { x: (src.clientX - r.left) * (canvas.width / r.width), y: (src.clientY - r.top) * (canvas.height / r.height) };
+    };
+    const down = (e) => { e.preventDefault(); drawing = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+    const move = (e) => { if (!drawing) return; e.preventDefault(); const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+    const up = () => (drawing = false);
+    canvas.addEventListener('mousedown', down);
+    canvas.addEventListener('mousemove', move);
+    canvas.addEventListener('mouseup', up);
+    canvas.addEventListener('mouseleave', up);
+    canvas.addEventListener('touchstart', down, { passive: false });
+    canvas.addEventListener('touchmove', move, { passive: false });
+    canvas.addEventListener('touchend', up);
+  }
+  const bar = el('div', { class: 'sigpad-bar' });
+  bar.appendChild(el('span', { class: 'sigpad-label' }, [label]));
+  bar.appendChild(el('button', {
+    class: 'btn ghost small',
+    onclick: () => { if (ctx) { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); } },
+  }, ['Clear']));
+  wrap.appendChild(bar);
+  wrap.appendChild(canvas);
+  return {
+    wrap,
+    canvas,
+    get: () => (ctx && ctx.getImageData && ctx.getImageData(0, 0, canvas.width, canvas.height).data.some((v, i) => i % 4 === 3 && v > 0) ? canvas.toDataURL() : null),
+  };
+}
+
+function renderSignoffCard(tr) {
+  ensureSignoffs(tr);
+  const pads = {};
+  const card = el('div', { class: 'card' }, [
+    el('div', { class: 'section-head' }, [el('h2', { class: 'co-sum', style: 'margin:0' }, ['Digital Sign-Off'])]),
+    el('div', { class: 'sub', style: 'color:var(--muted);font-size:12px' }, ['One signature per person. Draw (finger, mouse, or stylus) and tap Save Signatures. They\'re embedded into this driver\'s printed record.']),
+  ]);
+  const grid = el('div', { class: 'sig-grid' });
+  for (const r of SIGNOFF_ROLES) {
+    pads[r.key] = makeSigPad(r.label, tr.signoffs[r.key] || null);
+    grid.appendChild(pads[r.key].wrap);
+  }
+  card.appendChild(grid);
+  card.appendChild(el('label', { class: 'field' }, [
+    el('span', { class: 'field-label' }, ['Sign-off Date']),
+    el('input', { type: 'date', id: 'signoffDate', value: tr.signoffs.date || todayISO(), onchange: (e) => { tr.signoffs.date = e.target.value; } }),
+  ]));
+  card.appendChild(el('div', { class: 'btn-row' }, [
+    el('button', { class: 'btn primary', onclick: () => saveSignoffs(tr, pads) }, ['Save Signatures']),
+    el('button', { class: 'btn ghost small danger', onclick: () => clearSignoffs(tr) }, ['Clear All']),
+  ]));
+  return card;
+}
+
+function saveSignoffs(tr, pads) {
+  ensureSignoffs(tr);
+  const dateInput = document.getElementById('signoffDate');
+  if (dateInput) tr.signoffs.date = dateInput.value;
+  let any = false;
+  for (const r of SIGNOFF_ROLES) {
+    tr.signoffs[r.key] = pads[r.key].get() || '';
+    if (tr.signoffs[r.key]) any = true;
+  }
+  persist();
+  renderTraineeDetail();
+  toast(any ? 'Signatures saved.' : 'All signatures cleared.');
+}
+
+function clearSignoffs(tr) {
+  if (!confirm('Clear ALL signatures for ' + tr.name + '?')) return;
+  ensureSignoffs(tr);
+  for (const r of SIGNOFF_ROLES) tr.signoffs[r.key] = '';
+  tr.signoffs.date = '';
+  persist();
+  renderTraineeDetail();
+  toast('Signatures cleared.');
+}
+
+/* ---------- New-Hire Driver Training Process (gated) ---------- */
+// Updated U.S. AutoForce process (2026): the new driver's file (LMS modules,
+// DQ file, road test) must be COMPLETE before they go on the road with a
+// trainer. Four phases gate in order — nothing can be skipped.
+
+const REGIONS = ['Central', 'West', 'East'];
+const REGION_CONTACTS = {
+  Central: ['Paula Gerrits', 'Tim Manning', 'Doug Kellner'],
+  West: ['Paula Gerrits', 'Tim Manning', 'Mario Soria'],
+  East: ['Paula Gerrits', 'Tim Manning', 'Aaron Rowells'],
+};
+
+const TRAIN_PHASES = [
+  {
+    key: 'p1',
+    title: 'Day 1–2 · Driver File & LMS (before on-road)',
+    rule: 'GATE — this driver must NOT go on the road (with or without a trainer) until every item is complete.',
+    items: [
+      'All LMS modules completed (incl. the 6 PACE modules)',
+      'Driver DQ file completed',
+      'DQ file completed & submitted prior to driving with trainer',
+      'Road test completed & submitted electronically with DQ file',
+      'Road test done in the type of truck they will drive (not the PACE form)',
+      'Training vehicle has a working Samsara system',
+    ],
+  },
+  {
+    key: 'p2',
+    title: 'Day 3 · Trainer Drives',
+    rule: 'Trainer drives all day and gives a narrative (commentary) PACE drive.',
+    items: [
+      'Trainer drives all day (trainer + trainee on the road)',
+      'Trainer gives a narrative PACE / commentary drive',
+    ],
+  },
+  {
+    key: 'p3',
+    title: 'Day 4 · Trainee Drives',
+    rule: 'Trainee drives with the trainer in the passenger seat; the PACE evaluation drive is on day 4.',
+    items: [
+      'Trainee drives with trainer in passenger seat',
+      'PACE evaluation drive + PACE Driver Evaluation Form completed (day 4)',
+      'Trainee drives using PACE principles with trainer coaching',
+    ],
+  },
+  {
+    key: 'p4',
+    title: 'Day 5+ · Check-Off, Compliance & Release',
+    rule: 'Trainer, trainee and ops management agree ready → check-off signed → sent to region compliance → compliance releases the driver.',
+    items: [
+      'Trainer, Trainee & ops management agree the driver is ready',
+      'Driver-Trainer check-off fully signed',
+      'Check-off + PACE evaluation form sent to region compliance',
+      'Compliance confirms all compliance documents are 100%',
+      'Compliance initials / dates the compliance items',
+      'Compliance signs the last signature → released to drive on their own',
+    ],
+  },
+];
+
+const ROAD_MILES = ['Ride-along 1', 'Ride-along 2', 'Ride-along 3', 'Ride-along 4', 'Solo with shadow'];
+
+function ensureProcess(tr) {
+  if (!tr.process || typeof tr.process !== 'object') tr.process = {};
+  if (!tr.process.region || REGIONS.indexOf(tr.process.region) === -1) {
+    tr.process.region = (typeof localStorage !== 'undefined' && localStorage.getItem('trainRegion')) || 'Central';
+  }
+  if (!tr.process.phases || typeof tr.process.phases !== 'object') tr.process.phases = {};
+  for (const ph of TRAIN_PHASES) {
+    if (!tr.process.phases[ph.key]) tr.process.phases[ph.key] = { items: {} };
+    for (const it of ph.items) {
+      const s = tr.process.phases[ph.key].items[it];
+      if (!s || typeof s !== 'object') tr.process.phases[ph.key].items[it] = { d: '', i: '' };
+    }
+  }
+  return tr;
+}
+
+function procItem(tr, key, label) {
+  return ensureProcess(tr).process.phases[key].items[label] || { d: '', i: '' };
+}
+
+// Backfills the fixed curriculum/milestone keys for records loaded from an
+// older backup or a hand-edited import, so a legacy trainee without them can't
+// crash the list/detail renders (progressOf/statusOf read these directly).
+function ensureTraits(tr) {
+  if (!tr.topics || typeof tr.topics !== 'object') { tr.topics = {}; for (const t of TOPICS) tr.topics[t] = { date: '', trainer: '' }; }
+  if (!tr.milestones || typeof tr.milestones !== 'object') { tr.milestones = {}; for (const m of MILESTONES) tr.milestones[m] = { date: '', notes: '' }; }
+  return ensureProcess(ensureCheckoffs(tr));
+}
+
+// The phase-4 "check-off fully signed" requirement is derived from the real
+// table, and "Compliance signs the last signature" is derived from the drawn
+// DOT Compliance signature — so the release can't be faked.
+function autoItemPass(tr, ph, label) {
+  if (label.indexOf('check-off fully signed') >= 0) return coCount(tr) >= CHECKOFF_TOTAL;
+  if (label.indexOf('last signature') >= 0) return !!(ensureSignoffs(tr).dot);
+  return null; // manual item
+}
+
+function phaseItemsDone(tr, key) {
+  ensureProcess(tr);
+  const ph = TRAIN_PHASES.find((p) => p.key === key);
+  if (!ph) return false;
+  return ph.items.every((it) => {
+    const a = autoItemPass(tr, ph, it);
+    if (a !== null) return a;
+    const s = procItem(tr, key, it);
+    return !!(s.d && s.d.trim());
+  });
+}
+
+function prevPhasesDone(tr, key) {
+  const i = TRAIN_PHASES.findIndex((p) => p.key === key);
+  for (let k = 0; k < i; k++) if (!phaseItemsDone(tr, TRAIN_PHASES[k].key)) return false;
+  return true;
+}
+
+function processProgress(tr) {
+  const done = TRAIN_PHASES.filter((p) => phaseItemsDone(tr, p.key)).length;
+  return { done, total: TRAIN_PHASES.length };
+}
+
+function processGateMsg(tr) {
+  return TRAIN_PHASES.filter((p) => !phaseItemsDone(tr, p.key)).map((p) => p.title);
+}
+
+function onRoad(t) {
+  const m = t.milestones || {};
+  return ROAD_MILES.some((x) => m[x] && m[x].date);
+}
+
+function setTraineeRegion(tr, region) {
+  ensureProcess(tr).process.region = region;
+  try { localStorage.setItem('trainRegion', region); } catch (e) {}
+  persist();
+  renderTraineeDetail();
+}
+
+function toggleProcessItem(tr, key, label) {
+  ensureProcess(tr);
+  const ph = TRAIN_PHASES.find((p) => p.key === key);
+  const a = autoItemPass(tr, ph, label);
+  if (a !== null) {
+    if (!a) toast(label.indexOf('last signature') >= 0
+      ? 'Sign the DOT Compliance line in Digital Sign-Off first.'
+      : 'Check-Off not fully signed yet (' + coCount(tr) + '/' + CHECKOFF_TOTAL + ') — finish the table above.');
+    return;
+  }
+  if (key !== 'p1' && !prevPhasesDone(tr, key)) { toast('Complete the previous phase first.'); return; }
+  const s = procItem(tr, key, label);
+  if (s.d) { s.d = ''; s.i = ''; }
+  else { s.d = todayISO(); s.i = tr.trainer || ''; }
+  persist();
+  const phDone = phaseItemsDone(tr, key);
+  renderTraineeDetail();
+  toast(s.d ? (phDone ? 'Phase complete: ' + ph.title : 'Signed off.') : 'Cleared.');
+}
+
+function phaseMark(tr, key) {
+  ensureProcess(tr);
+  const i = TRAIN_PHASES.findIndex((p) => p.key === key);
+  if (i > 0 && !prevPhasesDone(tr, key)) { toast('Complete the "Day 1–2 · Driver File & LMS" phase first.'); return; }
+  let trainer = (tr.trainer || '').toUpperCase();
+  if (!trainer) {
+    const v = prompt('Trainer initials for this phase?', '');
+    if (v === null) return;
+    trainer = v.trim().toUpperCase();
+    if (!trainer) return;
+    tr.trainer = trainer;
+  }
+  for (const it of TRAIN_PHASES[i].items) {
+    if (autoItemPass(tr, TRAIN_PHASES[i], it) !== null) continue;
+    const s = procItem(tr, key, it);
+    if (!s.d) { s.d = todayISO(); s.i = trainer; }
+  }
+  persist();
+  renderTraineeDetail();
+  const miss = processGateMsg(tr);
+  toast(miss.length ? 'Phase signed. Still needed: ' + miss.join('; ') : 'ALL PHASES COMPLETE — driver file done.');
+}
+
+function renderProcessCard(tr) {
+  ensureProcess(tr);
+  const pp = processProgress(tr);
+  const p1ok = phaseItemsDone(tr, 'p1');
+  const ok = pp.done === pp.total;
+  const banner = ok
+    ? el('div', { class: 'pr-banner ok' }, ['✅ FILE COMPLETE — released: this driver is cleared to drive on their own.'])
+    : !p1ok
+      ? el('div', { class: 'pr-banner no' }, ['🚫 NOT CLEARED TO DRIVE — the Day 1–2 driver file (LMS modules, DQ file, road test) is incomplete. Do NOT let this driver on the road until it\'s done.'])
+      : el('div', { class: 'pr-banner warm' }, ['⚠️ Driver file complete — cleared for on-road training (Day 3+). Not yet released by compliance.']);
+
+  const regionSel = el('select', { class: 'select', onchange: (e) => setTraineeRegion(tr, e.target.value) });
+  for (const r of REGIONS) regionSel.appendChild(el('option', { value: r, selected: r === tr.process.region }, [r]));
+
+  const card = el('div', { class: 'card pr-card' }, [
+    el('div', { class: 'section-head' }, [
+      el('h2', { class: 'no-top' }, ['Driver Training Process (' + pp.done + '/' + pp.total + ' phases)']),
+      regionSel,
+    ]),
+    banner,
+  ]);
+
+  TRAIN_PHASES.forEach((ph, i) => {
+    const done = phaseItemsDone(tr, ph.key);
+    const locked = ph.key !== 'p1' && !prevPhasesDone(tr, ph.key);
+    const counts = ph.items.filter((it) => {
+      const a = autoItemPass(tr, ph, it);
+      return a !== null ? a : !!(procItem(tr, ph.key, it).d);
+    }).length;
+    card.appendChild(el('div', { class: 'pr-phase' }, [
+      el('div', { class: 'pr-head' }, [
+        el('span', { class: 'pr-title' + (done ? ' done' : '') }, [(done ? '✓ ' : locked ? '🔒 ' : '▢ ') + ph.title]),
+        el('span', { class: 'pr-n' }, [counts + '/' + ph.items.length]),
+      ]),
+      el('div', { class: 'pr-body' + (locked ? ' locked' : '') }, [
+        el('div', { class: 'pr-rule' }, [ph.rule]),
+        ...ph.items.map((it) => {
+          const a = autoItemPass(tr, ph, it);
+          const auto = a !== null;
+          const s = procItem(tr, ph.key, it);
+          const active = auto ? a : !!s.d;
+          return el('div', { class: 'pr-item' + (active ? ' done' : '') }, [
+            el('div', { class: 'check ' + (active ? 'done' : ''), onclick: () => toggleProcessItem(tr, ph.key, it) }, [active ? '✓' : (auto ? '…' : '')]),
+            el('div', {}, [
+              el('div', { class: 'topic-name' }, [it + (auto && it.indexOf('check-off fully signed') >= 0 ? ' (' + coCount(tr) + '/' + CHECKOFF_TOTAL + ')' : '')]),
+              el('div', { class: 'topic-meta' }, auto
+                ? (a ? 'Auto-satisfied' : 'Waiting on the check-off table / DOT signature')
+                : (s.d ? 'Done ' + s.d + (s.i ? ' · ' + s.i : '') : 'Not yet')),
+            ]),
+          ]);
+        }),
+        el('div', { class: 'btn-row', style: 'margin-top:10px' }, [
+          el('button', { class: 'btn ghost small', onclick: () => phaseMark(tr, ph.key) }, ['✓ Mark phase complete']),
+        ]),
+      ]),
+    ]));
+  });
+
+  const contacts = (REGION_CONTACTS[tr.process.region] || []).join(', ');
+  card.appendChild(el('div', { class: 'pr-contacts' }, [
+    el('div', { class: 'topic-name' }, ['Send check-off + PACE evaluation form to ' + tr.process.region + ' region: ' + contacts]),
+    el('div', { class: 'topic-meta' }, ['Compliance evaluates, initials/dates the compliance items, then signs the LAST signature to release the driver.']),
+  ]));
+  return card;
+}
+
 let trainees = [];
 let view = 'trainees';
 let current = null;
@@ -109,7 +477,7 @@ const el = (tag, attrs = {}, children = []) => {
     if (k === 'class') n.className = v;
     else if (k === 'html') n.innerHTML = v;
     else if (k.startsWith('on')) n[k] = v;
-    else if (v !== undefined && v !== null) n.setAttribute(k, v);
+    else if (v !== undefined && v !== null && v !== false) n.setAttribute(k, v);
   }
   for (const c of children) {
     if (c === null || c === undefined) continue;
@@ -167,6 +535,7 @@ function initStorage() {
       if (legacy) { try { data = JSON.parse(legacy); } catch (e) { data = null; } }
     }
     trainees = data && Array.isArray(data) ? data : [];
+    trainees = trainees.map((t) => ensureTraits(t));
     await idbSet(KEY, trainees);
     roster = await rosterGet();
   });
@@ -175,6 +544,7 @@ function initStorage() {
 function persist() {
   _writeQueue = _writeQueue.then(() => idbSet(KEY, trainees));
   try { localStorage.setItem('trainingTrack', JSON.stringify(trainees)); } catch (e) {}
+  scheduleAutoBackup();
 }
 
 /* ============================== Driver Roster (shared) ============================== */
@@ -230,7 +600,7 @@ function rosterUpsert(entry) {
   if (!name) return;
   const existing = rosterFind(name);
   if (existing) {
-    for (const k of ['license', 'warehouse', 'hireDate', 'trainer']) {
+    for (const k of ['license', 'warehouse', 'phone', 'hireDate', 'trainer', 'licenseExp', 'medCardExp']) {
       const v = String((entry && entry[k]) || '').trim();
       if (v) existing[k] = v;
     }
@@ -239,11 +609,25 @@ function rosterUpsert(entry) {
       name,
       license: String((entry && entry.license) || '').trim(),
       warehouse: String((entry && entry.warehouse) || '').trim(),
+      phone: String((entry && entry.phone) || '').trim(),
       hireDate: String((entry && entry.hireDate) || '').trim(),
       trainer: String((entry && entry.trainer) || '').trim(),
+      licenseExp: String((entry && entry.licenseExp) || '').trim(),
+      medCardExp: String((entry && entry.medCardExp) || '').trim(),
     });
   }
   rosterPut(roster);
+}
+
+// Every driver name the app knows about: the shared roster plus any driver that
+// only lives in the Cert Tracker — so the name pickers never come up empty just
+// because a driver was first added on a different screen.
+function knownDriverNames() {
+  const seen = {};
+  const add = (n) => { const s = String(n || '').trim(); if (s) seen[s.toLowerCase()] = s; };
+  for (const r of roster) add(r.name);
+  if (typeof drivers !== 'undefined' && drivers) for (const d of drivers) add(d.name);
+  return Object.keys(seen).sort((a, b) => a.localeCompare(b)).map((k) => seen[k]);
 }
 
 function ensureRosterDatalist() {
@@ -253,23 +637,171 @@ function ensureRosterDatalist() {
     document.body.append(dl);
   }
   dl.innerHTML = '';
-  for (const r of roster) dl.appendChild(el('option', { value: r.name }));
+  for (const n of knownDriverNames()) dl.appendChild(el('option', { value: n }));
   return dl;
 }
 
+/* ---------- Reliable Month / Day / Year date entry ----------
+   A native <input type="date"> calendar cannot always reach another year: on
+   several phones and tablets (and inside installed web apps) tapping the year
+   header simply does nothing, so a future expiration date or an old hire date
+   becomes impossible to enter. These three plain dropdowns always work on every
+   device, and still store the same 'YYYY-MM-DD' string the app already uses. */
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function splitISO(iso) {
+  const m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(String(iso == null ? '' : iso).trim());
+  return m ? { y: +m[1], m: +m[2], d: +m[3] } : { y: 0, m: 0, d: 0 };
+}
+
+function joinISO(y, m, d) {
+  if (!y || !m || !d) return '';
+  return y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+}
+
+// Month / Day / Year dropdowns. onChange(iso) fires on every pick; iso is ''
+// until all three are chosen. A pre-filled date keeps its day and month, so
+// just changing the year re-dates the whole field in one tap.
+function dateSelects(value, onChange) {
+  const cur = splitISO(value);
+  const thisYear = new Date().getFullYear();
+  const mSel = el('select', { class: 'dt-m', 'aria-label': 'Month' });
+  const dSel = el('select', { class: 'dt-d', 'aria-label': 'Day' });
+  const ySel = el('select', { class: 'dt-y', 'aria-label': 'Year' });
+  const emit = () => {
+    let y = Number(ySel.value) || 0;
+    let m = Number(mSel.value) || 0;
+    let d = Number(dSel.value) || 0;
+    if (y && m && d) { const last = new Date(y, m, 0).getDate(); if (d > last) d = last; onChange(joinISO(y, m, d)); return; }
+    onChange(joinISO(y, m, d));
+  };
+  mSel.appendChild(el('option', { value: '' }, ['Month']));
+  MONTH_LABELS.forEach((label, i) => mSel.appendChild(el('option', { value: i + 1, selected: cur.m === i + 1 }, [label])));
+  dSel.appendChild(el('option', { value: '' }, ['Day']));
+  for (let i = 1; i <= 31; i++) dSel.appendChild(el('option', { value: i, selected: cur.d === i }, [i]));
+  ySel.appendChild(el('option', { value: '' }, ['Year']));
+  for (let y = thisYear + 12; y >= thisYear - 40; y--) ySel.appendChild(el('option', { value: y, selected: cur.y === y }, [y]));
+  [mSel, dSel, ySel].forEach((s) => s.addEventListener('change', emit));
+  return el('div', { class: 'dt-row' }, [mSel, dSel, ySel]);
+}
+
+// Same trio, but the field's original id lives on a hidden input so existing
+// readers (document.getElementById(id).value) keep working untouched.
+function dateField(labelText, id, value) {
+  const hidden = el('input', { type: 'hidden', id, value: value || '' });
+  const row = dateSelects(value || '', (iso) => { hidden.value = iso; });
+  return el('div', { class: 'field' }, [el('span', { class: 'field-label' }, [labelText]), row, hidden]);
+}
+
+// Write an ISO date into a field by id and, when that id sits on a Month/Day/Year
+// trio, move the three dropdowns to match — so autofill from the roster shows up
+// in the visible controls instead of only landing on the hidden carrier.
+function syncDateField(id, iso) {
+  const hidden = document.getElementById(id);
+  if (!hidden) return;
+  hidden.value = iso || '';
+  const host = hidden.parentNode;
+  if (!host || !host.children) return;
+  // NB: children is an HTMLCollection in a real browser (no .find/.forEach) —
+  // walk it by index so this works on every engine as well as in the test mock.
+  let row = null;
+  for (let i = 0; i < host.children.length; i++) {
+    const c = host.children[i];
+    const cn = String((c && c.className) || '');
+    if ((' ' + cn + ' ').indexOf(' dt-row ') >= 0) { row = c; break; }
+  }
+  if (!row || row.children.length !== 3) return;
+  const p = splitISO(iso);
+  const vals = [p.m ? String(p.m) : '', p.d ? String(p.d) : '', p.y ? String(p.y) : ''];
+  for (let i = 0; i < row.children.length; i++) {
+    const sel = row.children[i];
+    if (sel && sel.tagName === 'SELECT') sel.value = vals[i];
+  }
+}
+
+// Read an ISO date back as MM/DD/YYYY for the read-only roster summary.
+function fmtDate(iso) {
+  const p = splitISO(iso);
+  if (!p.y) return String(iso == null ? '' : iso).trim();
+  return String(p.m).padStart(2, '0') + '/' + String(p.d).padStart(2, '0') + '/' + p.y;
+}
+
+// Everything the roster knows about a driver that a form might want to show.
+// The mapped fields get filled into the form; whatever is left over is printed
+// under the name (hire date, lic. #, licence / med-card expirations).
+function rosterInfoBits(r) {
+  if (!r) return [];
+  const out = [];
+  const add = (label, v) => {
+    const s = String(v == null ? '' : v).trim();
+    if (s) out.push(label + ' ' + s);
+  };
+  add('Hire date', fmtDate(r.hireDate));
+  add('Lic.#', r.license);
+  add('Lic. exp', fmtDate(r.licenseExp));
+  add('Med card exp', fmtDate(r.medCardExp));
+  add('Warehouse', r.warehouse);
+  add('Trainer', r.trainer);
+  return out;
+}
+
+// Name input with typeahead; when it matches a roster driver, fills the given
+// field ids from the roster (only when the target field is still empty) and
+// shows the rest of what the roster knows about them.
+// The field also carries a plain <select> pull-down of every known driver name:
+// a native <datalist> popup only opens once you start typing (and on some phones
+// and in installed web apps it never opens at all), so the dropdown is the
+// dependable way to pick someone who is already on the roster.
 function rosterField(labelText, id, value, fields, extra = {}) {
   const input = el('input', { type: 'text', id, value, list: 'roster-names', autocomplete: 'off', ...extra });
-  const fill = () => {
+  const info = el('div', { class: 'roster-info' });
+  info.style.display = 'none'; // nothing shown until a roster driver is matched
+  const paintInfo = (r) => {
+    const bits = rosterInfoBits(r);
+    info.innerHTML = '';
+    if (bits.length) {
+      info.appendChild(el('b', {}, ['From roster: ']));
+      info.appendChild(el('span', {}, [bits.join('  •  ')]));
+    }
+    info.style.display = bits.length ? '' : 'none';
+  };
+  // force = the user just picked the driver, so the roster wins; typing only
+  // fills fields that are still blank so nothing they typed gets stomped.
+  const fill = (force) => {
     const r = rosterFind(input.value);
+    paintInfo(r);
     if (!r) return;
     for (const [fid, prop] of Object.entries(fields)) {
       const n = document.getElementById(fid);
-      if (n && !n.value) n.value = r[prop] || '';
+      if (!n || (n.value && !force)) continue;
+      syncDateField(fid, r[prop] || '');
     }
   };
-  input.addEventListener('input', fill);
-  input.addEventListener('change', fill);
-  return el('label', { class: 'field' }, [el('span', { class: 'field-label' }, [labelText]), input]);
+  input.addEventListener('input', () => fill(false));
+  input.addEventListener('change', () => fill(false));
+  if (value) paintInfo(rosterFind(value));
+  const kids = [el('span', { class: 'field-label' }, [labelText]), input];
+  const names = knownDriverNames();
+  if (names.length) {
+    const pick = el('select', { class: 'roster-pick', 'aria-label': 'Choose ' + labelText + ' from the driver roster' });
+    pick.appendChild(el('option', { value: '' }, ['Choose from roster…']));
+    for (const n of names) pick.appendChild(el('option', { value: n }, [n]));
+    pick.addEventListener('change', (e) => {
+      const n = e.target.value;
+      if (!n) return;
+      input.value = n;
+      fill(true);
+      // Let any field-level handler (persisting the name, autofill, ...) run.
+      if (typeof Event === 'function' && input.dispatchEvent) {
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      pick.value = '';
+    });
+    kids.push(pick);
+  }
+  kids.push(info);
+  return el('label', { class: 'field' }, kids);
 }
 
 function newTrainee(name, hireDate, trainer) {
@@ -277,7 +809,7 @@ function newTrainee(name, hireDate, trainer) {
   for (const t of TOPICS) topics[t] = { date: '', trainer: '' };
   const milestones = {};
   for (const m of MILESTONES) milestones[m] = { date: '', notes: '' };
-  return ensureCheckoffs({ id: uid(), name, hireDate, trainer, topics, milestones, notes: '' });
+  return ensureTraits({ id: uid(), name, hireDate, trainer, topics, milestones, notes: '', signoffs: {} });
 }
 
 function progressOf(tr) {
@@ -336,10 +868,13 @@ function renderTrainees() {
   const list = el('div', {}, sorted.map((tr) => {
     const st = statusOf(tr);
     const p = progressOf(tr);
+    ensureProcess(tr);
+    const p1ok = phaseItemsDone(tr, 'p1');
+    const warnFile = !p1ok && (onRoad(tr) || st === 'released');
     return el('div', { class: 'card row', onclick: () => openTrainee(tr.id) }, [
       el('div', {}, [
         el('div', { class: 'title' }, [tr.name]),
-        el('div', { class: 'sub' }, [`Hired ${tr.hireDate || '—'}${tr.trainer ? ' · Trainer: ' + tr.trainer : ''}`]),
+        el('div', { class: 'sub' }, [`Hired ${tr.hireDate || '—'}${tr.trainer ? ' · Trainer: ' + tr.trainer : ''}${warnFile ? ' · ⚠️ driver file incomplete' : ''}`]),
         el('div', { class: 'trainee-progress' }, [
           el('div', { class: 'track' }, [el('div', { class: 'fill', style: `width:${p.pct}%` })]),
           el('div', { class: 'pct' }, [`${p.pct}%`]),
@@ -363,10 +898,7 @@ function addTrainee() {
     el('div', { class: 'card' }, [
       el('h2', {}, ['New Trainee']),
       rosterField('Trainee name', 'newName', '', { newTrainer: 'trainer', newHire: 'hireDate' }, { placeholder: 'Full name' }),
-      el('div', { class: 'field' }, [
-        el('label', {}, ['Hire date']),
-        el('input', { id: 'newHire', type: 'date' }),
-      ]),
+      dateField('Hire date', 'newHire', ''),
       el('div', { class: 'field' }, [
         el('label', {}, ['Trainer']),
         el('input', { id: 'newTrainer', placeholder: 'Your name', autocomplete: 'off' }),
@@ -458,7 +990,7 @@ function renderTraineeDetail() {
     ]),
   ]);
 
-  main.append(header, topicsCard, renderCheckoffCard(ensureCheckoffs(tr)), milesCard, notesCard);
+  main.append(header, renderProcessCard(tr), topicsCard, renderCheckoffCard(ensureCheckoffs(tr)), renderSignoffCard(tr), milesCard, notesCard);
 }
 
 function renderCheckoffCard(tr) {
@@ -467,7 +999,7 @@ function renderCheckoffCard(tr) {
     el('div', { class: 'section-head' }, [
       el('h2', { class: 'co-sum' }, [`Driver/Trainer Check-Off (${done}/${CHECKOFF_TOTAL})`]),
     ]),
-    el('div', { class: 'sub', style: 'color:var(--muted);font-size:12px' }, ['Sign off each item with driver initials, trainer initials, and the date.']),
+    el('div', { class: 'sub', style: 'color:var(--muted);font-size:12px' }, ['Sign off each item with driver initials, the initials of whoever signed the group off, and the date. The compliance review is signed by DOT Compliance Support.']),
     ...CHECKOFF_GROUPS.map((g) => checkoffGroup(tr, g)),
   ]);
 }
@@ -492,11 +1024,11 @@ function toggleCoGroup(name) {
 }
 
 function coTable(tr, g) {
-  const wrap = el('div', { class: 'co-table' });
+  const wrap = el('div', { class: 'co-table' + (g.initialsLabel ? ' co-table-wide' : '') });
   wrap.append(el('div', { class: 'co-row co-th' }, [
     el('div', { class: 'co-item' }, ['Item']),
     el('div', { class: 'co-drv' }, ['Driver']),
-    el('div', { class: 'co-tr' }, ['Trainer']),
+    el('div', { class: 'co-tr' }, [coInitialsLabel(g)]),
     el('div', { class: 'co-date' }, ['Date']),
   ]));
   for (const item of g.items) {
@@ -504,8 +1036,8 @@ function coTable(tr, g) {
     const complete = !!(s.date && s.driver && s.trainer);
     wrap.append(el('div', { class: 'co-row' + (complete ? ' done' : '') }, [
       el('div', { class: 'co-item' }, [item]),
-      el('div', { class: 'co-drv' }, [el('input', { type: 'text', class: 'co-input', maxlength: '3', placeholder: '·', value: s.driver, oninput: (e) => { s.driver = e.target.value; persist(); refreshCo(e.target); } })]),
-      el('div', { class: 'co-tr' }, [el('input', { type: 'text', class: 'co-input', maxlength: '3', placeholder: '·', value: s.trainer, oninput: (e) => { s.trainer = e.target.value; persist(); refreshCo(e.target); } })]),
+      el('div', { class: 'co-drv' }, [el('input', { type: 'text', class: 'co-input', maxlength: '3', placeholder: '·', value: s.driver, oninput: (e) => { const v = e.target.value.toUpperCase(); if (e.target.value !== v) e.target.value = v; s.driver = v; persist(); refreshCo(e.target); } })]),
+      el('div', { class: 'co-tr' }, [el('input', { type: 'text', class: 'co-input', maxlength: '3', placeholder: '·', value: s.trainer, oninput: (e) => { const v = e.target.value.toUpperCase(); if (e.target.value !== v) e.target.value = v; s.trainer = v; persist(); refreshCo(e.target); } })]),
       el('div', { class: 'co-date' }, [el('input', { type: 'date', class: 'co-input', value: s.date, onchange: (e) => { s.date = e.target.value; persist(); refreshCo(e.target); } })]),
     ]));
   }
@@ -545,13 +1077,28 @@ function refreshCo(input) {
 function completeCoGroup(tr, g) {
   const pending = g.items.filter((it) => !coItem(tr, it).date);
   if (!pending.length) { toast('This group is already signed off.'); return; }
-  let initials = (tr.coInitials || '').toUpperCase();
-  if (!initials) {
-    const v = prompt('Trainer initials for this group?', '');
-    if (v === null) return;
-    initials = v.trim().toUpperCase();
-    if (!initials) return;
-    tr.coInitials = initials;
+  // The compliance review is initialled by DOT Compliance Support, not by the
+  // trainer, so it keeps its own initials (the trainer's are reused everywhere else).
+  let initials;
+  if (g.initialsLabel) {
+    initials = ((tr.coInitialsExtra || {})[g.initialsLabel] || '').toUpperCase();
+    if (!initials) {
+      const v = prompt(g.initialsLabel + ' initials for this group?', '');
+      if (v === null) return;
+      initials = v.trim().toUpperCase();
+      if (!initials) return;
+      if (!tr.coInitialsExtra) tr.coInitialsExtra = {};
+      tr.coInitialsExtra[g.initialsLabel] = initials;
+    }
+  } else {
+    initials = (tr.coInitials || '').toUpperCase();
+    if (!initials) {
+      const v = prompt('Trainer initials for this group?', '');
+      if (v === null) return;
+      initials = v.trim().toUpperCase();
+      if (!initials) return;
+      tr.coInitials = initials;
+    }
   }
   let driverInit = (tr.coDriverInitials || '').toUpperCase();
   const needDriver = pending.some((it) => !coItem(tr, it).driver);
@@ -583,6 +1130,25 @@ function toggleTopic(t) {
 
 function toggleMilestone(m) {
   const s = current.milestones[m];
+  if (!s.date) {
+    ensureProcess(current);
+    if (m === 'Ride-along 1' && !phaseItemsDone(current, 'p1')) {
+      toast('🚫 Blocked: complete the "Day 1–2 · Driver File & LMS" phase (LMS modules, DQ file, road test) before this driver goes on the road with a trainer.');
+      return;
+    }
+    if (m === 'Solo with shadow' && !phaseItemsDone(current, 'p1')) {
+      toast('🚫 Blocked: the "Day 1–2 · Driver File & LMS" phase must be complete before solo & shadow.');
+      return;
+    }
+    if (m === 'Ready for release' && (!phaseItemsDone(current, 'p1') || !phaseItemsDone(current, 'p2') || !phaseItemsDone(current, 'p3'))) {
+      toast('🚫 Blocked: finish the Day 1–2 file and the Day 3 / Day 4 phases before marking "Ready for release".');
+      return;
+    }
+    if (m === 'Released / sign-off' && !phaseItemsDone(current, 'p4')) {
+      toast('🚫 Blocked: release requires the full "Day 5+ · Check-Off, Compliance & Release" phase (check-off fully signed, sent to compliance, compliance signs the last DOT signature). Still needed: ' + processGateMsg(current).join('; '));
+      return;
+    }
+  }
   if (s.date) { s.date = ''; s.notes = ''; }
   else {
     s.date = todayISO();
@@ -616,6 +1182,46 @@ function exportAll() {
   toast('Backup downloaded');
 }
 
+/* ---------- Auto-backup ----------
+   Keeps an off-device, recoverable copy: a timestamped JSON file drops into
+   Downloads a few seconds after you stop entering data. Debounced 15s,
+   throttled to one per 5 min, capped per session. Toggle in the Print tab. */
+const AUTOBACKUP_KEY = 'autobk_training';
+let _abEnabled = (localStorage.getItem(AUTOBACKUP_KEY) !== 'off');
+let _abTimer = null, _abLast = 0, _abCount = 0, _abPending = false;
+const AB_DELAY = 15000, AB_MIN_GAP = 300000, AB_MAX = 6;
+
+function autoBackupEnabled() { return _abEnabled; }
+function setAutoBackup(on) { _abEnabled = !!on; try { localStorage.setItem(AUTOBACKUP_KEY, on ? 'on' : 'off'); } catch (e) {} }
+function scheduleAutoBackup() { if (!_abEnabled) return; _abPending = true; clearTimeout(_abTimer); _abTimer = setTimeout(runAutoBackup, AB_DELAY); }
+function runAutoBackup() {
+  if (!_abEnabled || !_abPending) return;
+  const now = Date.now();
+  if (_abCount >= AB_MAX) { _abPending = false; return; }
+  if (_abLast && now - _abLast < AB_MIN_GAP) { _abTimer = setTimeout(runAutoBackup, AB_MIN_GAP - (now - _abLast)); return; }
+  _abPending = false; _abLast = now; _abCount++;
+  try {
+    if (!trainees.length) return;
+    const ts = new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '');
+    const data = JSON.stringify({ app: 'usaf-training', exported: todayISO(), trainees }, null, 2);
+    const a = el('a', { href: 'data:text/json;charset=utf-8,' + encodeURIComponent(data), download: 'training-tracker-auto-' + ts + '.json' });
+    document.body.append(a);
+    a.click();
+    a.remove();
+  } catch (e) {}
+}
+function autoBackupToggleUI() {
+  const ck = el('input', { type: 'checkbox', class: 'ab-ck', onchange: (e) => { setAutoBackup(e.target.checked); toast(e.target.checked ? 'Auto-backup ON' : 'Auto-backup OFF'); } });
+  ck.checked = _abEnabled;
+  return el('label', { class: 'ab-toggle' }, [
+    ck,
+    el('span', { class: 'ab-txt' }, [
+      el('span', { class: 'ab-title' }, ['Auto-backup to Downloads']),
+      el('span', { class: 'sub' }, ['Saves a timestamped backup file to Downloads a few seconds after you stop entering data (up to 6 per session).']),
+    ]),
+  ]);
+}
+
 function renderPrint() {
   const main = $('app');
   main.innerHTML = '';
@@ -625,6 +1231,8 @@ function renderPrint() {
   }
   main.append(
     el('button', { class: 'btn primary full', onclick: () => openPrint() }, ['🖨️ Print / Save PDF']),
+    el('div', { style: 'height:12px' }),
+    autoBackupToggleUI(),
     el('div', { style: 'height:12px' }),
     trainees.map((tr) => {
       const st = statusOf(tr);
@@ -682,8 +1290,10 @@ function printHtml() {
     h4 { font-size: 12.5px; margin: 12px 0 4px; color: #333; }
     ul { margin: 0 0 10px; }
     li { font-size: 12px; margin-bottom: 2px; }
-    .foot { margin-top: 30px; display: flex; gap: 60px; }
-    .sig { width: 230px; border-top: 1px solid #333; padding-top: 4px; font-size: 11px; }
+    .foot { margin-top: 26px; display: flex; flex-wrap: wrap; gap: 24px; }
+    .sig { width: 210px; border-top: 1px solid #333; padding-top: 4px; font-size: 11px; }
+    .sig img { display: block; max-height: 44px; max-width: 100%; margin-bottom: 2px; }
+    .sig .sigdate { font-size: 12px; font-weight: 600; height: 44px; display: flex; align-items: flex-end; }
     .print-brand { display: flex; align-items: center; gap: 12px; padding-bottom: 10px; margin-bottom: 14px; border-bottom: 2px solid #7c3aed; }
     .print-brand img { height: 44px; width: auto; border-radius: 6px; }
     .pb-eyebrow { font-size: 10px; font-weight: bold; letter-spacing: 1.8px; text-transform: uppercase; color: #7c3aed; }
@@ -702,15 +1312,52 @@ function printHtml() {
     <h3>Ride-Along Milestones (${MILESTONES.length})</h3>
     <ul>${MILESTONES.map((m) => `<li>${esc(m)}</li>`).join('')}</ul>
     <h2>Driver/Trainer Check-Off</h2>
-    ${trainees.map(checkoffPrintBlock).join('')}
-    <div class="foot">
-      <div class="sig">Trainer Signature</div>
-      <div class="sig">Trainee Signature</div>
-      <div class="sig">Operations Leader Signature</div>
-      <div class="sig">DOT Compliance Signature</div>
-      <div class="sig">Date</div>
-    </div>
+    ${trainees.map((tr) => processPrintBlock(tr) + checkoffPrintBlock(tr) + signoffPrintBlock(tr)).join('')}
   </body></html>`;
+}
+
+function signoffPrintBlock(tr) {
+  ensureSignoffs(tr);
+  const s = tr.signoffs;
+  const cell = (data, label) => '<div class="sig">' +
+    (data ? '<img src="' + data + '" alt="' + esc(label) + '">' : '') +
+    '<div>' + esc(label) + '</div></div>';
+  return '<h4>Digital Sign-Off — ' + esc(tr.name) + '</h4>' +
+    '<div class="foot">' +
+    cell(s.trainer, 'Trainer Signature') +
+    cell(s.driver, 'Trainee Signature') +
+    cell(s.opsLeader, 'Operations Leader Signature') +
+    cell(s.dot, 'DOT Compliance Signature') +
+    '<div class="sig">' + (s.date ? '<div class="sigdate">' + esc(s.date) + '</div>' : '') + '<div>Date</div></div>' +
+    '</div>';
+}
+
+function processPrintBlock(tr) {
+  ensureProcess(tr);
+  const p1ok = phaseItemsDone(tr, 'p1');
+  const ok = phaseItemsDone(tr, 'p4');
+  const contacts = (REGION_CONTACTS[tr.process.region] || []).join(', ');
+  const phases = TRAIN_PHASES.map((ph, idx) => {
+    const rows = ph.items.map((it) => {
+      const a = autoItemPass(tr, ph, it);
+      const auto = a !== null;
+      const s = procItem(tr, ph.key, it);
+      const active = auto ? a : !!s.d;
+      return `<tr><td style="width:22px;text-align:center">${active ? '✓' : ''}</td>
+        <td>${esc(it)}${auto && it.indexOf('check-off fully signed') >= 0 ? ' (' + coCount(tr) + '/' + CHECKOFF_TOTAL + ')' : ''}</td>
+        <td style="width:70px">${esc(s.i)}</td>
+        <td style="width:90px">${esc(s.d)}</td></tr>`;
+    }).join('');
+    return `<h4>Phase ${idx + 1} — ${esc(ph.title)}${phaseItemsDone(tr, ph.key) ? ' ✓' : ''}</h4>
+      <p style="margin:2px 0 6px;color:#555;font-size:11px">${esc(ph.rule)}</p>
+      <table><tr><th></th><th>Requirement</th><th>Initials</th><th>Date</th></tr>${rows}</table>`;
+  }).join('');
+  return `<h3>Driver Training Process (gated)</h3>
+    <p style="margin:2px 0 8px;font-weight:700;color:${p1ok ? '#0a7a0a' : '#b00020'}">
+    Driver File Gate (Day 1–2, before on-road): ${p1ok ? 'COMPLETE — cleared to drive with trainer' : 'INCOMPLETE — driver must NOT go on the road'}</p>
+    <p style="margin:0 0 8px;font-size:11px;color:#555">Region: ${esc(tr.process.region)} · Send check-off + PACE evaluation form to: ${esc(contacts)}</p>
+    ${phases}
+    ${ok ? '<p style="margin:8px 0 0;font-weight:700;color:#0a7a0a">FILE COMPLETE — released to drive on their own.</p>' : ''}`;
 }
 
 function checkoffPrintBlock(tr) {
@@ -719,10 +1366,10 @@ function checkoffPrintBlock(tr) {
   const groups = CHECKOFF_GROUPS.map((g) => {
     const gdone = g.items.filter((it) => coItem(tr, it).date).length;
     return `<h4>${esc(g.name)} (${gdone}/${g.items.length})</h4>
-      <table><tr><th>Item</th><th>Driver Initials</th><th>Trainer Initials</th><th>Date</th></tr>
+      <table><tr><th>Item</th><th>Driver Initials</th><th>${esc(coInitialsLabel(g))} Initials</th><th>Date</th></tr>
       ${g.items.map((it) => {
         const s = coItem(tr, it);
-        return `<tr><td>${esc(it)}</td><td>${esc(s.driver)}</td><td>${esc(s.trainer)}</td><td>${esc(s.date)}</td></tr>`;
+        return `<tr><td>${esc(it)}</td><td>${esc((s.driver || '').toUpperCase())}</td><td>${esc((s.trainer || '').toUpperCase())}</td><td>${esc(s.date)}</td></tr>`;
       }).join('')}
       </table>`;
   }).join('');

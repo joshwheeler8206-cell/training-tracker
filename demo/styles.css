@@ -81,6 +81,24 @@ main#empty { text-align: center; }
 }
 .field textarea { min-height: 60px; resize: vertical; }
 
+/* ---------- Roster name pull-down + roster info summary ---------- */
+.roster-pick { margin-top: 6px; }
+
+/* Read-only summary of what the shared roster knows about the chosen driver —
+   hire date, licence #, licence / med-card expirations, warehouse, trainer. */
+.roster-info {
+  margin-top: 7px; padding: 7px 9px; border: 1px dashed var(--line); border-radius: 8px;
+  background: rgba(124, 58, 237, .05); font-size: 11.5px; color: var(--muted);
+  line-height: 1.5; overflow-wrap: anywhere;
+}
+.roster-info b { color: var(--text); }
+
+/* Month / Day / Year dropdowns — work on every device, unlike the native
+   calendar's year control on some phones and installed web apps. */
+.dt-row { display: flex; gap: 6px; }
+.dt-row select { flex: 1 1 0; min-width: 0; width: auto; padding-left: 8px; padding-right: 8px; }
+.dt-row .dt-y { flex: 1.2 1 0; }
+
 .trainee-progress { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
 .track { flex: 1; height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; }
 .fill { height: 100%; background: var(--purple); border-radius: 99px; transition: width 0.3s; }
@@ -196,3 +214,64 @@ textarea { font-family: inherit; }
   .co-row.co-th { display: none; }
   .co-drv, .co-tr, .co-date { flex: 1 1 0; width: auto; }
 }
+
+/* The compliance-review group is signed off by DOT Compliance Support, so its
+   initials column needs more room than the plain "Trainer" one (wide screens
+   only — phones keep the stacked, equal-width layout above). */
+@media (min-width: 481px) {
+  .co-table-wide .co-tr { width: 104px; }
+  .co-row.co-th .co-tr { white-space: normal; line-height: 1.15; }
+}
+
+/* ---------- Auto-backup toggle ---------- */
+.ab-toggle {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--line, #e3e6ef); border-radius: 10px;
+  background: rgba(124, 58, 237, .06);
+  cursor: pointer;
+}
+.ab-ck { width: 22px; height: 22px; flex: none; margin-top: 1px; }
+.ab-txt { display: flex; flex-direction: column; gap: 2px; }
+.ab-title { font-size: 13px; font-weight: 700; }
+.ab-txt .sub { font-size: 12px; color: inherit; opacity: .75; margin: 0; }
+
+/* ---------- Driver Training Process (gated) ---------- */
+.pr-card .section-head { gap: 10px; }
+.pr-card .select {
+  flex-shrink: 0; width: auto; max-width: 42%;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: var(--card); color: var(--ink); padding: 6px 8px; font-size: 12.5px; font-weight: 600;
+}
+.pr-banner { border-radius: 10px; padding: 10px 12px; font-size: 13px; font-weight: 700; margin: 4px 0 10px; line-height: 1.4; }
+.pr-banner.no { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+.pr-banner.warm { background: #fef3c7; color: var(--amber); border: 1px solid #fde68a; }
+.pr-banner.ok { background: #dcfce7; color: var(--green); border: 1px solid #bbf7d0; }
+.pr-phase { border: 1px solid var(--line); border-radius: 12px; margin-bottom: 10px; overflow: hidden; background: var(--card); }
+.pr-head { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-bottom: 1px solid var(--line); background: #f8fafc; }
+.pr-title { flex: 1; font-size: 13.5px; font-weight: 700; }
+.pr-title.done { color: var(--green); }
+.pr-n { font-size: 11px; font-weight: 700; color: var(--purple); background: #ede9fe; padding: 2px 8px; border-radius: 999px; flex-shrink: 0; }
+.pr-rule { font-size: 11.5px; color: var(--muted); padding: 8px 14px 0; line-height: 1.35; }
+.pr-body.locked { opacity: .55; }
+.pr-item { display: flex; align-items: center; gap: 12px; padding: 8px 14px; border-top: 1px solid var(--line); }
+.pr-item:first-child { border-top: none; }
+.pr-item .check { width: 24px; height: 24px; font-size: 13px; border-radius: 7px; }
+.pr-item.done .topic-name { color: var(--green); }
+.pr-contacts { margin-top: 4px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: #f8fafc; }
+
+/* ---------- Digital Sign-Off ---------- */
+.sigpad-wrap { margin: 8px 0 12px; }
+.sigpad-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.sigpad-label { font-size: 12px; font-weight: 600; color: var(--muted); }
+.sigpad {
+  width: 100%;
+  height: 140px;
+  border: 1.5px dashed var(--line);
+  border-radius: 10px;
+  background: #fff;
+  touch-action: none;
+}
+.sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 560px) { .sig-grid { grid-template-columns: 1fr; } }
+.sig-grid .sigpad { height: 120px; }
