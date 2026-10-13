@@ -84,6 +84,17 @@ function coInitialsLabel(g) {
   return (g && g.initialsLabel) || 'Trainer';
 }
 
+// The header row spells out which side the initials belong on ("Trainee
+// Initials" / "Trainer Initials" — "DOT Compliance Support Initials" for the
+// compliance group). The full wording is too long for a phone column, so each
+// cell carries a short label too and CSS picks one for the current width.
+function coHeadCell(cls, full, short) {
+  return el('div', { class: cls }, [
+    el('span', { class: 'co-lbl-full' }, [full]),
+    el('span', { class: 'co-lbl-short' }, [short]),
+  ]);
+}
+
 function coItem(tr, item) {
   return (tr.checkoffs && tr.checkoffs[item]) || { date: '', driver: '', trainer: '' };
 }
@@ -999,7 +1010,7 @@ function renderCheckoffCard(tr) {
     el('div', { class: 'section-head' }, [
       el('h2', { class: 'co-sum' }, [`Driver/Trainer Check-Off (${done}/${CHECKOFF_TOTAL})`]),
     ]),
-    el('div', { class: 'sub', style: 'color:var(--muted);font-size:12px' }, ['Sign off each item with driver initials, the initials of whoever signed the group off, and the date. The compliance review is signed by DOT Compliance Support.']),
+    el('div', { class: 'sub', style: 'color:var(--muted);font-size:12px' }, ['Each item takes the trainee\'s initials, the initials of whoever signed the group off, and the date. Only the Driver Qualification review (the bottom group) is initialled by DOT Compliance Support.']),
     ...CHECKOFF_GROUPS.map((g) => checkoffGroup(tr, g)),
   ]);
 }
@@ -1027,8 +1038,8 @@ function coTable(tr, g) {
   const wrap = el('div', { class: 'co-table' + (g.initialsLabel ? ' co-table-wide' : '') });
   wrap.append(el('div', { class: 'co-row co-th' }, [
     el('div', { class: 'co-item' }, ['Item']),
-    el('div', { class: 'co-drv' }, ['Driver']),
-    el('div', { class: 'co-tr' }, [coInitialsLabel(g)]),
+    coHeadCell('co-drv', 'Trainee Initials', 'Trainee'),
+    coHeadCell('co-tr', coInitialsLabel(g) + ' Initials', g.initialsLabel ? 'DOT Compliance' : coInitialsLabel(g)),
     el('div', { class: 'co-date' }, ['Date']),
   ]));
   for (const item of g.items) {
@@ -1366,7 +1377,7 @@ function checkoffPrintBlock(tr) {
   const groups = CHECKOFF_GROUPS.map((g) => {
     const gdone = g.items.filter((it) => coItem(tr, it).date).length;
     return `<h4>${esc(g.name)} (${gdone}/${g.items.length})</h4>
-      <table><tr><th>Item</th><th>Driver Initials</th><th>${esc(coInitialsLabel(g))} Initials</th><th>Date</th></tr>
+      <table><tr><th>Item</th><th>Trainee Initials</th><th>${esc(coInitialsLabel(g))} Initials</th><th>Date</th></tr>
       ${g.items.map((it) => {
         const s = coItem(tr, it);
         return `<tr><td>${esc(it)}</td><td>${esc((s.driver || '').toUpperCase())}</td><td>${esc((s.trainer || '').toUpperCase())}</td><td>${esc(s.date)}</td></tr>`;

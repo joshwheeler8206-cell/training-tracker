@@ -141,8 +141,11 @@ main#empty { text-align: center; }
 .co-row { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-top: 1px solid var(--line); }
 .co-row.co-th { padding: 8px 14px; background: #f4f2fa; font-size: 10.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
 .co-item { flex: 1; min-width: 0; font-size: 13px; overflow-wrap: break-word; }
-.co-drv, .co-tr { width: 52px; flex-shrink: 0; }
+.co-drv, .co-tr { width: 70px; flex-shrink: 0; }
 .co-date { width: 118px; flex-shrink: 0; }
+/* The header cells name the initials ("Trainee Initials" / "Trainer Initials").
+   Phones get the short wording instead — see the 480px block below. */
+.co-lbl-short { display: none; }
 .co-input {
   width: 100%; min-height: 30px;
   border: 1px solid var(--line); border-radius: 6px;
@@ -211,7 +214,13 @@ textarea { font-family: inherit; }
 @media (max-width: 480px) {
   .co-row { flex-wrap: wrap; padding: 8px 12px; }
   .co-row .co-item { flex: 1 1 100%; overflow-wrap: break-word; }
-  .co-row.co-th { display: none; }
+  /* The header row used to be dropped here, which left the initials columns
+     unlabelled on phones. Keep it (minus the "Item" cell) and switch to the
+     short wording so "Trainee Initials" doesn't wrap to three lines. */
+  .co-row.co-th .co-item { display: none; }
+  .co-row.co-th .co-drv, .co-row.co-th .co-tr { white-space: normal; line-height: 1.15; }
+  .co-lbl-full { display: none; }
+  .co-lbl-short { display: inline; }
   .co-drv, .co-tr, .co-date { flex: 1 1 0; width: auto; }
 }
 
@@ -220,7 +229,7 @@ textarea { font-family: inherit; }
    only — phones keep the stacked, equal-width layout above). */
 @media (min-width: 481px) {
   .co-table-wide .co-tr { width: 104px; }
-  .co-row.co-th .co-tr { white-space: normal; line-height: 1.15; }
+  .co-row.co-th .co-drv, .co-row.co-th .co-tr { white-space: normal; line-height: 1.15; }
 }
 
 /* ---------- Auto-backup toggle ---------- */
