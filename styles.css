@@ -81,6 +81,24 @@ main#empty { text-align: center; }
 }
 .field textarea { min-height: 60px; resize: vertical; }
 
+/* ---------- Roster name pull-down + roster info summary ---------- */
+.roster-pick { margin-top: 6px; }
+
+/* Read-only summary of what the shared roster knows about the chosen driver —
+   hire date, licence #, licence / med-card expirations, warehouse, trainer. */
+.roster-info {
+  margin-top: 7px; padding: 7px 9px; border: 1px dashed var(--line); border-radius: 8px;
+  background: rgba(124, 58, 237, .05); font-size: 11.5px; color: var(--muted);
+  line-height: 1.5; overflow-wrap: anywhere;
+}
+.roster-info b { color: var(--text); }
+
+/* Month / Day / Year dropdowns — work on every device, unlike the native
+   calendar's year control on some phones and installed web apps. */
+.dt-row { display: flex; gap: 6px; }
+.dt-row select { flex: 1 1 0; min-width: 0; width: auto; padding-left: 8px; padding-right: 8px; }
+.dt-row .dt-y { flex: 1.2 1 0; }
+
 .trainee-progress { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
 .track { flex: 1; height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; }
 .fill { height: 100%; background: var(--purple); border-radius: 99px; transition: width 0.3s; }
@@ -195,6 +213,14 @@ textarea { font-family: inherit; }
   .co-row .co-item { flex: 1 1 100%; overflow-wrap: break-word; }
   .co-row.co-th { display: none; }
   .co-drv, .co-tr, .co-date { flex: 1 1 0; width: auto; }
+}
+
+/* The compliance-review group is signed off by DOT Compliance Support, so its
+   initials column needs more room than the plain "Trainer" one (wide screens
+   only — phones keep the stacked, equal-width layout above). */
+@media (min-width: 481px) {
+  .co-table-wide .co-tr { width: 104px; }
+  .co-row.co-th .co-tr { white-space: normal; line-height: 1.15; }
 }
 
 /* ---------- Auto-backup toggle ---------- */
