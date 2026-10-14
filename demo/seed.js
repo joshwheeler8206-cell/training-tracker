@@ -111,317 +111,417 @@ var __SEED_DBS__ = {
 "checkoffs": {
 "Driver evaluation completed": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Uses PACE principles while operating vehicle": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "No use of any hand-held mobile devices while operating any company vehicle": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Fatigued driving discussed": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "3 types of distractions (mental \u2014 manual \u2014 visual) discussed": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Following distance": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Safe speed \u2014 follow speed limits": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Lane changes": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Following truck routes": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Lane restrictions": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Driver alert": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Driver safety bonus": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Seat belt usage (proper usage)": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Fueling trucks \u2014 off-road fuel/diesel/gasoline": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Avoid backing \u2014 do a pull-through": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Avoid blind-side backing": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "If you must back \u2014 G.O.A.L.": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "If you must back \u2014 avoid distractions, radio down, window down": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Watch for low overhangs/wires/canopies/trees/garage doors": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Avoid traveling under any obstruction you don't have to go under": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Know the height of your vehicle": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Go slow": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Keep safe distance from buildings/vehicles/objects": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Watch for vehicle swing-out/tail swing": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "CSA program \u2014 how it works": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Turn in inspection report to your supervisor": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Weigh station / port of entry \u2014 do I have to stop / what to expect?": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Contact authorities if in a vehicle incident on the road": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Securing crash scene area": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Contact/report all vehicle incidents to supervisor at first available opportunity": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Crash scene photos": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Understands HOS regulations and how they apply": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Understands HOS ELD exemptions and how they apply": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Lights": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Tires": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Brakes": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Valid Driver License & Med Card in possession": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Corrective lenses or hearing aid if needed": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Checking oil/fluids daily": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Horn": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Air or oil (fluid) leaks \u2014 including windshield": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Belts and hoses": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Battery cover and fuel caps secured": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Annual DOT inspection current": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Load securement": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Fire extinguisher": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "In-cab paperwork \u2014 Registration/Insurance/UCR/Hazmat, etc.": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Warning triangles": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Leaf spring/air bags and frame bolts": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Lift gate operation (if applicable)": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Air brake system and operation (if applicable)": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "How the dash camera works": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Tampering \u2014 consequences": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Samsara / Elite Extra": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Trained & understands Samsara DVIR/App": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Trained & understands Samsara ELD (if applicable)": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Trained & understands Elite Extra (if applicable)": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "DQ file 100% compliant": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Road test completed": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Medical card obtained": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "Drug & alcohol query ran (CDL drivers)": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 },
 "All LMS modules completed": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "KO",
+"trainer": "BT"
 }
 },
-"notes": "Ready for release.",
-"coInitials": "BT"
+"coInitials": "BT",
+"coDriverInitials": "KO",
+"coInitialsExtra": {
+"DOT Compliance Support": "PG"
+},
+"process": {
+"region": "Central",
+"phases": {
+"p1": {
+"items": {
+"All LMS modules completed (incl. the 6 PACE modules)": {
+"d": "2026-06-04",
+"i": "BT"
+},
+"Driver DQ file completed": {
+"d": "2026-06-04",
+"i": "BT"
+},
+"DQ file completed & submitted prior to driving with trainer": {
+"d": "2026-06-04",
+"i": "BT"
+},
+"Road test completed & submitted electronically with DQ file": {
+"d": "2026-06-04",
+"i": "BT"
+},
+"Road test done in the type of truck they will drive (not the PACE form)": {
+"d": "2026-06-04",
+"i": "BT"
+},
+"Training vehicle has a working Samsara system": {
+"d": "2026-06-04",
+"i": "BT"
+}
+}
+},
+"p2": {
+"items": {
+"Trainer drives all day (trainer + trainee on the road)": {
+"d": "2026-06-04",
+"i": "BT"
+},
+"Trainer gives a narrative PACE / commentary drive": {
+"d": "2026-06-04",
+"i": "BT"
+}
+}
+},
+"p3": {
+"items": {
+"Trainee drives with trainer in passenger seat": {
+"d": "2026-06-04",
+"i": "BT"
+},
+"PACE evaluation drive + PACE Driver Evaluation Form completed (day 4)": {
+"d": "2026-06-04",
+"i": "BT"
+},
+"Trainee drives using PACE principles with trainer coaching": {
+"d": "2026-06-04",
+"i": "BT"
+}
+}
+},
+"p4": {
+"items": {
+"Trainer, Trainee & ops management agree the driver is ready": {
+"d": "2026-06-04",
+"i": "BT"
+},
+"Driver-Trainer check-off fully signed": {
+"d": "2026-06-04",
+"i": "BT"
+},
+"Check-off + PACE evaluation form sent to region compliance": {
+"d": "2026-06-04",
+"i": "BT"
+},
+"Compliance confirms all compliance documents are 100%": {
+"d": "2026-06-04",
+"i": "BT"
+},
+"Compliance initials / dates the compliance items": {
+"d": "2026-06-04",
+"i": "BT"
+},
+"Compliance signs the last signature \u2192 released to drive on their own": {
+"d": "2026-06-04",
+"i": "BT"
+}
+}
+}
+}
+},
+"signoffs": {
+"trainer": "data:image/png;base64,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",
+"driver": "data:image/png;base64,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",
+"opsLeader": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAlgAAADIAQMAAAAOUQ31AAAABlBMVEX///8RGCdvNzcLAAAFLUlEQVR42u3ZvXLcNhAAYEAskCIjpEzhMcqU6TMaQm+SPEQKFwwJTQqXeoM4b2JkXLj0I5iZFClNTYpQM9RddhcAf3Q8kJJQpMDOmHN35H0+kovFgmIsR44cOXLkyJEjR44cJyFMCoVb3Mo2yS/qcKuTWJKspkti9XiixySWSmkNsLlo+hSWRqv4J6F1l8RqDpgYd0M6688k1qFBq01i/easQwpr0DQcE1lQIqStU5QJbzUprF7ZtJayOol1eQ2W0QkKa9FLm8zqnPUqjQXlWRuVxBJosaQWTUfsp5dNQ86SztouYz9HrBatxlvFtjXErAKmjdpbYrP08NUicLliqedYl8zfORmsdp9VHE9nDMa+c42ERevABFl6s4yJU2swTAerxwvqrJLK2HVsmj8+TkQOn7h2RFo+t0qceGN9ivyEFndvvnVnbVizYlXlVmLIWzydwmXjlbOsb21UsOhdpbcSQwqyXPtRPrIMWHzweyu1fnln7QedgDsL1oxW760BCuJ+q5hbeO3EF8uO3mIzq8ekE0ezZfnR21hvPZClTy13q87Ea7J8VTnSb/zSBot5i971cssqecfCmPHW3wsLIO4tnODe2i3LzVr83lu8H7xV4wmSxV3x32VdWLC6mCW2rCuyYKjBdeN3+Fp+DFazYomIVVHprWldUHirI+saP3XWMFq6aLesCiy892R96Aqw4OrU+NNwAFHb2iKz0zrA4b23umBpSuPJKmPWG7Lgn3xstU+2+tE6zq0KjeHUqnnUqrz1ngn7BvP2Bqx6YVE7bfGO17zbYal3cHhFVj+zDE4c9WhVMatDCw+YW2K0lMFs32fxyVJmslq0+GhdwwFPsTRaVzOrw3R3Fh4gDB7VR7oK2F96SxppyskqnGWDBRWn32NR5gRLm5klrStt/Q4LlNGy0miqDoNs9WSZF1oWrWJp4cZd3vOWclYlrILXRResHsu8bIOlcNSet4BwFlaTxxYnSzzBAmW0WrDMieWa++p5VsOqheVL02vcwDeqswkxswqwJMz6NathCQQvcFRPVumtMmbBzcaZD35GSZ0NWganf7K6ZrLK51qMrMJbVzssB5HFwRKnVu07oCvcwH9dni1eC6sm6xAsubAqb6ldVk+FBqagEiyLmYF94GGy1Kbl9nMYflDke7Q0LVvI4s+zGFgwBIdgHRRZrqlUMGExzJmI5ZILkhStYWHVZN0Hq9+wqoU1ULM1Wg2OHv7w2JImYhV4n8mCw79iD8H6kUai68SchdVyw8L8k7+27Bf6GnxZv8dZu6E29xgsLEBGsYhVrlmKlkB6bsmbp1muqZ+sw+yB6GSda8DKyXobrCZYiiztrQ9YgPAJynmr9lMkWjo8mfUW3UH1dEt8tOz7uQXDfpge/VJzDUwZs6pgfYIsa72FrViHjeK0Itm21MISvwdrmCzfu+EiCV7X4wcr1jBaxi8iYRkK1kVYu7nH7nstmovF55A2zprWgdNiF5gqYpneW8W4/lLBWnaTzhoi1s1ksclaW7weqaa7S7K+qCVrWFgwEsVK/9GQ1UesP3DHgLsny65aWPb5XczCbKa+cXp8Avmzdkl+CNbZBx2jxcbnsQVc5JVSQI8b7iNNtPgLf0GNd//Vngdisb9WFJPFXmz9i1Z0jbN8ahSzaIGtxV6riRzIcZQ9wZKbVnTduzzexCzcqW73WvE/aNAIvDUpLFeG3yWxvkloubvzmaWzjukskdI6pLN4Qot9zXLkyJEjR44cOXLkyJEjR44cOXL8v+M/oi6HvyBdIP0AAAAASUVORK5CYII=",
+"dot": "data:image/png;base64,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",
+"date": "2026-06-05"
+},
+"notes": "Ready for release."
 },
 {
 "id": "t2",
@@ -541,278 +641,278 @@ var __SEED_DBS__ = {
 },
 "No use of any hand-held mobile devices while operating any company vehicle": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Fatigued driving discussed": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "3 types of distractions (mental \u2014 manual \u2014 visual) discussed": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Following distance": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Safe speed \u2014 follow speed limits": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Lane changes": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Following truck routes": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Lane restrictions": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Driver alert": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Driver safety bonus": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Seat belt usage (proper usage)": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Fueling trucks \u2014 off-road fuel/diesel/gasoline": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Avoid backing \u2014 do a pull-through": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Avoid blind-side backing": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "If you must back \u2014 G.O.A.L.": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "If you must back \u2014 avoid distractions, radio down, window down": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Watch for low overhangs/wires/canopies/trees/garage doors": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Avoid traveling under any obstruction you don't have to go under": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Know the height of your vehicle": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Go slow": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Keep safe distance from buildings/vehicles/objects": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Watch for vehicle swing-out/tail swing": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "CSA program \u2014 how it works": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Turn in inspection report to your supervisor": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Weigh station / port of entry \u2014 do I have to stop / what to expect?": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Contact authorities if in a vehicle incident on the road": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Securing crash scene area": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Contact/report all vehicle incidents to supervisor at first available opportunity": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Crash scene photos": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Understands HOS regulations and how they apply": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Understands HOS ELD exemptions and how they apply": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Lights": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Tires": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Brakes": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Valid Driver License & Med Card in possession": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Corrective lenses or hearing aid if needed": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Checking oil/fluids daily": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Horn": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Air or oil (fluid) leaks \u2014 including windshield": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Belts and hoses": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Battery cover and fuel caps secured": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Annual DOT inspection current": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Load securement": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Fire extinguisher": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "In-cab paperwork \u2014 Registration/Insurance/UCR/Hazmat, etc.": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Warning triangles": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Leaf spring/air bags and frame bolts": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Lift gate operation (if applicable)": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Air brake system and operation (if applicable)": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "How the dash camera works": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Tampering \u2014 consequences": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Samsara / Elite Extra": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Trained & understands Samsara DVIR/App": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Trained & understands Samsara ELD (if applicable)": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Trained & understands Elite Extra (if applicable)": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "DQ file 100% compliant": {
 "date": "",
@@ -826,22 +926,56 @@ var __SEED_DBS__ = {
 },
 "Medical card obtained": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "Drug & alcohol query ran (CDL drivers)": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 },
 "All LMS modules completed": {
 "date": "2026-06-02",
-"driver": "J. Kowalski",
-"trainer": "B. Tran"
+"driver": "RH",
+"trainer": "SN"
 }
 },
-"notes": "Week 4 of new-hire program.",
-"coInitials": "SN"
+"coInitials": "SN",
+"coDriverInitials": "RH",
+"process": {
+"region": "West",
+"phases": {
+"p1": {
+"items": {
+"All LMS modules completed (incl. the 6 PACE modules)": {
+"d": "2026-07-14",
+"i": "SN"
+},
+"Driver DQ file completed": {
+"d": "2026-07-14",
+"i": "SN"
+},
+"DQ file completed & submitted prior to driving with trainer": {
+"d": "2026-07-14",
+"i": "SN"
+},
+"Road test completed & submitted electronically with DQ file": {
+"d": "2026-07-14",
+"i": "SN"
+},
+"Road test done in the type of truck they will drive (not the PACE form)": {
+"d": "2026-07-14",
+"i": "SN"
+},
+"Training vehicle has a working Samsara system": {
+"d": "2026-07-14",
+"i": "SN"
+}
+}
+}
+}
+},
+"notes": "Week 4 of new-hire program."
 }
 ]
 },
