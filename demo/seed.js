@@ -81,7 +81,7 @@ var __SEED_DBS__ = {
 },
 "Ride-along 1": {
 "date": "2026-06-01",
-"notes": ""
+"notes": "138 mi on the I-80 corridor; mirror cadence is good but following distance still needs work in traffic"
 },
 "Ride-along 2": {
 "date": "2026-06-01",
@@ -601,7 +601,7 @@ var __SEED_DBS__ = {
 },
 "Ride-along 1": {
 "date": "2026-06-01",
-"notes": ""
+"notes": "138 mi on the I-80 corridor; mirror cadence is good but following distance still needs work in traffic"
 },
 "Ride-along 2": {
 "date": "",

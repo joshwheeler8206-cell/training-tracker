@@ -22,6 +22,8 @@
 
   var PAGE_W = 612, PAGE_H = 792;     // US Letter, points
   var M_L = 54, M_R = 54, M_T = 46, M_B = 54;
+  var VAL_COL_MIN = 150;              // narrowest right-hand value column
+  var VAL_COL_MAX = 210;              // widest a value may be before it wraps
 
   // Helvetica-ish advance widths (units/1000) — good enough for wrapping.
   function charW(ch, bold) {
@@ -245,16 +247,30 @@
       p.line(M_L, y, PAGE_W - M_R, y, 0.8, true);
       y -= 14;
       (b.rows || []).forEach(function (row) {
-        var lines = wrap(String(row[0]), 10, false, contentW - 150);
+        var label = String(row[0] == null ? '' : row[0]);
         var val = String(row[1] == null ? '' : row[1]);
-        need(lines.length * 13 + 6);
+        /* The value is a right-aligned column.  A value wider than the column
+           (a long ride-along comment, say) cannot be right-aligned or it runs
+           back across the item label, so it is wrapped onto its own indented
+           line underneath instead. */
+        var valW = textWidth(val, 10, true);
+        var sameLine = valW <= VAL_COL_MAX;
+        var lines = wrap(label, 10, false,
+          contentW - (sameLine ? Math.max(VAL_COL_MIN, valW) : VAL_COL_MAX) - 12);
+        var valLines = sameLine ? [] : wrap(val, 10, false, contentW - 14);
+        need(lines.length * 13 + valLines.length * 12 + 8);
         for (var li = 0; li < lines.length; li++) {
           p.text(M_L + (li ? 10 : 0), y, lines[li], 10, false, false);
           y -= 13;
         }
-        y += 13; // value aligns to the row's first line
-        p.rtext(PAGE_W - M_R, y, val, 10, true);
-        y -= 4;
+        if (sameLine) {
+          y += 13; // value aligns to the row's first line
+          p.rtext(PAGE_W - M_R, y, val, 10, true);
+          y -= 4;
+        } else {
+          valLines.forEach(function (l) { p.text(M_L + 14, y, l, 9.5, false, true); y -= 12; });
+          y -= 2;
+        }
         p.line(M_L, y, PAGE_W - M_R, y, 0.4, true);
         y -= 12;
       });
