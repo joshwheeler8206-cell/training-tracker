@@ -847,6 +847,7 @@ function switchView(v) {
 
 function render() {
   renderNav();
+  afWatchTraining();   // auto-save the PDF the moment a trainee is released
   if (view === 'trainees') renderTrainees();
   else renderPrint();
 }
@@ -942,6 +943,7 @@ function openTrainee(id) {
 }
 
 function renderTraineeDetail() {
+  afWatchTraining();   // release can be toggled from this view too
   const tr = current;
   const main = $('app');
   main.innerHTML = '';
@@ -959,6 +961,7 @@ function renderTraineeDetail() {
     ]),
     el('div', { class: 'btn-row' }, [
       el('button', { class: 'btn ghost small danger', onclick: () => deleteTrainee() }, ['Delete Trainee']),
+      el('button', { class: 'btn small', onclick: () => afTrainReport(tr) }, ['📄 Save PDF / Email']),
       el('button', { class: 'btn small', onclick: () => renderTrainees() }, ['← Back']),
     ]),
   ]);
@@ -1254,6 +1257,10 @@ function renderPrint() {
           el('div', { class: 'sub' }, [`${p.pct}% complete · ${st}`]),
         ]),
         el('span', { class: `badge ${st}` }, [st.replace('-', ' ')]),
+        el('button', {
+          class: 'btn ghost small',
+          onclick: (e) => { e.stopPropagation(); afTrainReport(tr); },
+        }, ['📄 PDF']),
       ]);
     })
   );
@@ -1394,3 +1401,110 @@ function registerSW() {
 }
 
 initStorage().then(() => { render(); registerSW(); }).catch((e) => console.error(e));
+
+/* === AF-REPORT:BEGIN === */
+window.__afToast = toast;
+
+function afTrainReleased(tr) {
+  const m = (tr && tr.milestones) || {};
+  return !!(m['Released / sign-off'] && m['Released / sign-off'].date);
+}
+function afTrainKey(tr) {
+  const m = (tr && tr.milestones) || {};
+  return 'train:' + ((tr && (tr.id || tr.name)) || '?') + ':' + ((m['Released / sign-off'] || {}).date || '');
+}
+
+/* Build a print-quality PDF spec out of one new-hire training record. */
+function afTrainSpec(tr) {
+  const tp = tr.topics || {};
+  const m = tr.milestones || {};
+  const st = statusOf(tr);
+  const p = progressOf(tr);
+  const proc = (tr.process && tr.process.phases) || {};
+  const phaseDone = TRAIN_PHASES.filter((x) => phaseItemsDone(tr, x.key)).length;
+  const released = (m['Released / sign-off'] || {}).date || '';
+  const meta = [
+    ['Driver:', tr.name || '—'],
+    ['Hire Date:', tr.hireDate || '—'],
+    ['Trainer:', tr.trainer || '—'],
+    ['Region:', (tr.process && tr.process.region) || '—'],
+    ['Status:', st === 'released' ? 'RELEASED — cleared to drive' : st === 'ready' ? 'Ready for release' : 'In training'],
+    ['Released:', released || '—'],
+    ['Progress:', p.done + ' / ' + p.total + '  (' + p.pct + '%)'],
+    ['Check-Off:', coCount(tr) + ' / ' + CHECKOFF_TOTAL + ' items signed'],
+    ['Process:', phaseDone + ' / ' + TRAIN_PHASES.length + ' phases complete'],
+  ];
+  const blocks = [];
+  blocks.push({
+    heading: 'Curriculum (' + Object.keys(tp).filter((t) => (tp[t] || {}).date).length + ' / ' + TOPICS.length + ')',
+    rows: TOPICS.map((t) => {
+      const s = tp[t] || {};
+      return [t, s.date ? s.date + (s.trainer ? ' · ' + s.trainer : '') : '—'];
+    }),
+  });
+  blocks.push({
+    heading: 'Ride-Alongs & Milestones',
+    rows: MILESTONES.map((mm) => {
+      const s = m[mm] || {};
+      return [mm, s.date ? s.date + (s.notes ? ' · ' + s.notes : '') : '—'];
+    }),
+  });
+  TRAIN_PHASES.forEach((ph) => {
+    blocks.push({
+      heading: 'Process · ' + ph.title,
+      rows: ph.items.map((it) => {
+        const s = procItem(tr, ph.key, it);
+        const auto = autoItemPass(tr, ph, it);
+        let v;
+        if (auto === true) v = 'Signed' + (s.d ? ' · ' + s.d : '');
+        else v = s.d ? (s.i ? s.i + ' · ' + s.d : s.d) : '—';
+        return [it, v];
+      }),
+      notes: ph.rule,
+    });
+  });
+  CHECKOFF_GROUPS.forEach((g) => {
+    blocks.push({
+      heading: 'Check-Off · ' + g.name + (g.initialsLabel ? ' — ' + g.initialsLabel + ' initials' : ''),
+      rows: g.items.map((it) => {
+        const c = coItem(tr, it);
+        const bits = [];
+        if (c.date) bits.push(c.date);
+        if (c.driver) bits.push('trainee ' + c.driver);
+        if (c.trainer) bits.push('trainer ' + c.trainer);
+        return [it, bits.join(' · ') || '—'];
+      }),
+    });
+  });
+  const so = ensureSignoffs(tr);
+  const signatures = SIGNOFF_ROLES.filter((r) => so[r.key]).map((r) => ({ label: r.label, image: so[r.key] }));
+  const footnotes = [];
+  if (so.date) footnotes.push('Check-Off / Sign-Off Date: ' + so.date);
+  const region = (tr.process || {}).region;
+  if (region && typeof REGION_CONTACTS !== 'undefined' && REGION_CONTACTS[region]) {
+    footnotes.push('Region ' + region + ' contacts: ' + REGION_CONTACTS[region].join(', '));
+  }
+  footnotes.push('The driver file must be complete and signed off before the driver goes on the road alone.');
+  footnotes.push('Generated ' + todayISO() + ' · U.S. AutoForce · Field Operations');
+  return {
+    kind: 'New Hire',
+    name: tr.name || 'Trainee',
+    date: released || todayISO(),
+    title: 'New-Hire Driver Training Record',
+    subtitle: (tr.name || '') + (tr.hireDate ? ' · hired ' + tr.hireDate : '') + (tr.trainer ? ' · trainer ' + tr.trainer : ''),
+    logo: typeof AF_LOGO !== 'undefined' ? AF_LOGO : null,
+    stamp: st === 'released' ? 'RELEASED TO DRIVE' : st === 'ready' ? 'READY FOR RELEASE' : 'IN TRAINING',
+    meta, blocks, paragraphs: [], signatures, footnotes,
+  };
+}
+
+/* Save + offer to email one training record (also used by on-screen buttons). */
+function afTrainReport(tr) { return AFReport.save(afTrainSpec(tr)); }
+
+/* Fires the auto-save exactly once, the moment a trainee is released. */
+function afWatchTraining() {
+  try {
+    AFReport.watchTraining(trainees, { isComplete: afTrainReleased, key: afTrainKey, spec: afTrainSpec });
+  } catch (e) {}
+}
+/* === AF-REPORT:END === */
