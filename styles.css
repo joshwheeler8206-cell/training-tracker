@@ -113,6 +113,17 @@ main#empty { text-align: center; }
 .topic-row:last-child, .mile-row:last-child { border-bottom: none; }
 .topic-name, .mile-name { flex: 1; font-size: 14px; }
 .topic-meta, .mile-meta { font-size: 11px; color: var(--muted); }
+.rsub { font-size: 12px; color: var(--muted); margin: 0 0 10px; }
+.mile-body { flex: 1; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.mile-note-btn {
+  flex-shrink: 0; width: 32px; height: 32px; padding: 0;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: #fff; color: var(--muted);
+  font-size: 14px; line-height: 1; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.mile-note-btn.has { border-color: var(--purple); color: var(--purple); }
+.mile-note-btn:active { background: rgba(0, 0, 0, .05); }
 
 .check {
   width: 24px; height: 24px; border-radius: 7px; border: 2px solid var(--line);

@@ -983,15 +983,17 @@ function renderTraineeDetail() {
 
   const milesCard = el('div', { class: 'card' }, [
     el('h2', {}, [`Ride-Alongs & Milestones (${Object.values(tr.milestones).filter((m) => m.date).length}/${MILESTONES.length})`]),
+    el('p', { class: 'rsub' }, ['Tap a milestone (or the 📝 button) to add or update its notes at any time — notes are kept when a milestone is unchecked.']),
     ...MILESTONES.map((m) => {
       const s = tr.milestones[m];
       const done = !!s.date;
       return el('div', { class: 'mile-row' }, [
         el('div', { class: 'check ' + (done ? 'done' : ''), onclick: () => toggleMilestone(m) }, [done ? '✓' : '']),
-        el('div', {}, [
+        el('div', { class: 'mile-body', onclick: () => editMilestoneNote(m) }, [
           el('div', { class: 'mile-name' }, [m]),
-          el('div', { class: 'mile-meta' }, done ? (s.notes ? `${s.date} · ${s.notes}` : s.date) : 'Not yet'),
+          el('div', { class: 'mile-meta' }, done ? (s.notes ? `${s.date} · ${s.notes}` : s.date) : (s.notes ? `Not yet · ${s.notes}` : 'Not yet')),
         ]),
+        el('button', { class: 'mile-note-btn' + (s.notes ? ' has' : ''), title: 'Add or edit notes', 'aria-label': `Add or edit notes for ${m}`, onclick: (e) => { if (e && e.stopPropagation) e.stopPropagation(); editMilestoneNote(m); } }, ['📝']),
       ]);
     }),
   ]);
@@ -1162,15 +1164,38 @@ function toggleMilestone(m) {
       toast('🚫 Blocked: release requires the full "Day 5+ · Check-Off, Compliance & Release" phase (check-off fully signed, sent to compliance, compliance signs the last DOT signature). Still needed: ' + processGateMsg(current).join('; '));
       return;
     }
-  }
-  if (s.date) { s.date = ''; s.notes = ''; }
-  else {
     s.date = todayISO();
-    const note = prompt(`Notes for "${m}"?`, '');
-    s.notes = note ? note.trim() : '';
+    // Ask for the note straight away, pre-filled with anything already recorded
+    // so a previously written note is never lost (e.g. after an uncheck/recheck).
+    const note = promptMilestoneNote(m, s.notes);
+    if (note !== null) s.notes = note;
+  } else {
+    // Unchecking only clears the completion date — the notes are kept so the
+    // ride-along log can be added to over time.
+    s.date = '';
   }
   persist();
   renderTraineeDetail();
+}
+
+// Opens the note editor for a milestone (works whether or not it is checked)
+// with the existing note pre-filled, so notes can be built up over time.
+function editMilestoneNote(m) {
+  if (!current) return;
+  const s = current.milestones[m];
+  if (!s) return;
+  const note = promptMilestoneNote(m, s.notes);
+  if (note === null) return;
+  const changed = note !== (s.notes || '');
+  s.notes = note;
+  persist();
+  renderTraineeDetail();
+  if (changed) toast(note ? `Note saved for "${m}"` : `Note cleared for "${m}"`);
+}
+
+function promptMilestoneNote(m, existing) {
+  const val = prompt(`Notes for "${m}"? (add or edit — leave blank to clear)`, existing || '');
+  return val === null ? null : val.trim();
 }
 
 function saveNotes() {
@@ -1446,7 +1471,8 @@ function afTrainSpec(tr) {
     heading: 'Ride-Alongs & Milestones',
     rows: MILESTONES.map((mm) => {
       const s = m[mm] || {};
-      return [mm, s.date ? s.date + (s.notes ? ' · ' + s.notes : '') : '—'];
+      const notes = s.notes || '';
+      return [mm, s.date ? (notes ? s.date + ' · ' + notes : s.date) : (notes || '—')];
     }),
   });
   TRAIN_PHASES.forEach((ph) => {
