@@ -466,29 +466,67 @@
   }
 
   var last = null;   // { blob, fname, kind, name, date }
+  var lastFiles = []; // array of { blob, fname, kind, name, date }
 
-  function canShareFiles(file) {
-    try { return !!(navigator.canShare && navigator.canShare({ files: [file] })); } catch (e) { return false; }
+  function canShareFiles(files) {
+    try { return !!(navigator.canShare && navigator.canShare({ files: files })); } catch (e) { return false; }
   }
 
-  function shareLast() {
-    if (!last) { toast('Nothing to email yet — save a completed report first.'); return; }
-    var file = new File([last.blob], last.fname, { type: 'application/pdf' });
+  function buildFileList(items) {
+    var arr = [];
+    (items || []).forEach(function (it) {
+      if (it && it.blob) arr.push(new File([it.blob], it.fname || 'report.pdf', { type: 'application/pdf' }));
+    });
+    return arr;
+  }
+
+  function shareLast(opts) {
+    opts = opts || {};
+    var items = (lastFiles && lastFiles.length) ? lastFiles.slice() : (last ? [last] : []);
+    if (!items.length) { toast('Nothing to email yet — save a completed report first.'); return; }
+    var files = buildFileList(items);
+    var names = items.map(function (x) { return x.fname; }).join(', ');
+    var kinds = items.map(function (x) { return x.kind || 'Report'; }).join(', ');
+    var name = items[0] && items[0].name ? ' — ' + items[0].name : '';
+    var date = items[0] && items[0].date ? ' (' + items[0].date + ')' : '';
+    var subj = opts.subject || ('AutoForce ' + kinds + ' report' + name + date);
+    var to = opts.to || 'JWheeler@usautoforce.com';
+    var body = opts.body || ('Completed ' + kinds + ' report' + name + date + '. PDF' + (files.length > 1 ? 's' : '') + ' attached.');
     var payload = {
-      files: [file],
-      title: last.fname,
-      text: 'Completed ' + last.kind + ' report' + (last.name ? ' — ' + last.name : '') +
-            (last.date ? ' (' + last.date + ')' : '') + '. PDF attached.',
+      files: files,
+      title: subj,
+      text: body,
     };
-    if (canShareFiles(file)) {
-      navigator.share(payload).catch(function () {});
-    } else if (navigator.share) {
-      // share text only + tell them the file is in Downloads
-      navigator.share({ title: last.fname, text: payload.text + ' It is saved in your Downloads folder.' })
-        .catch(function () {});
-    } else {
-      alert('Emailing is not supported by this browser.\n\nOpen your Files / Downloads app and email:\n\n' + last.fname);
+    if (canShareFiles(files)) {
+      // Try to hint mailto if supported? navigator.share doesn't take mailto directly; apps may ignore.
+      try {
+        if (navigator.share) {
+          navigator.share(payload).catch(function () {});
+          return;
+        }
+      } catch (e) {}
     }
+    if (navigator.share) {
+      navigator.share({ title: subj, text: body + '\n\nSaved in Downloads: ' + names })
+        .catch(function () {});
+      return;
+    }
+    var mailto = 'mailto:' + encodeURIComponent(to) + '?subject=' + encodeURIComponent(subj) + '&body=' + encodeURIComponent(body + '\n\nFiles: ' + names);
+    try { window.location.href = mailto; return; } catch (e) {}
+    alert('Emailing is not supported by this browser.\n\nOpen your Files / Downloads app and email:\n\n' + names + '\n\nTo: ' + to + '\nSubject: ' + subj);
+  }
+
+  function shareFiles(items, opts) {
+    lastFiles = (items || []).slice();
+    if (lastFiles.length === 1 && lastFiles[0]) last = lastFiles[0];
+    var okAll = true;
+    lastFiles.forEach(function (it) {
+      if (it && it.blob) {
+        try { downloadBlob(it.blob, it.fname); } catch (e) { okAll = false; }
+      }
+    });
+    banner(true, lastFiles.map(function (x) { return x.fname; }).join(', '));
+    shareLast(opts);
   }
 
   function toast(msg) {
@@ -531,14 +569,19 @@
     injectCss();
     var old = document.getElementById('afrep-banner');
     if (old) old.remove();
+    var hasMany = (lastFiles && lastFiles.length > 1);
+    var items = (hasMany ? lastFiles : (last ? [last] : []));
+    var names = items.map(function (x) { return x.fname; }).join(', ');
+    var label = hasMany ? (items.length + ' PDFs') : (fname || names);
+    if (hasMany && names.length > 90) label = (items.length + ' PDFs');
     var card = document.createElement('div');
     card.id = 'afrep-banner';
     card.className = 'afrep-card';
     card.innerHTML =
       '<div class="afrep-ic">📄</div><div class="afrep-body">' +
-      '<div class="afrep-t">' + (saved ? 'Report saved to Downloads' : 'Report ready') + '</div>' +
-      '<div class="afrep-f">' + fname + '</div>' +
-      '<div class="afrep-s">' + (saved ? 'Find it in your Files / Downloads app, or email it now.' : 'Tap Save PDF to put it in Downloads.') + '</div>' +
+      '<div class="afrep-t">' + (saved ? (hasMany ? items.length + ' Reports saved to Downloads' : 'Report saved to Downloads') : 'Report ready') + '</div>' +
+      '<div class="afrep-f">' + (hasMany ? names : (fname || names)) + '</div>' +
+      '<div class="afrep-s">' + (saved ? 'Find them in your Files / Downloads app, or email them now.' : 'Tap Save PDF to put it in Downloads.') + '</div>' +
       '<div class="afrep-row"></div></div>' +
       '<button class="afrep-x" aria-label="Close">✕</button>';
     var row = card.querySelector('.afrep-row');
@@ -550,8 +593,16 @@
       row.appendChild(b);
       return b;
     }
-    mk('✉️  Email to boss', function () { shareLast(); });
-    mk('💾  Save PDF', function () { if (last) { downloadBlob(last.blob, last.fname); toast('Saved: ' + last.fname); } }, true);
+    var hasMany = (lastFiles && lastFiles.length > 1);
+    mk(hasMany ? '✉️  Email both PDFs' : '✉️  Email to boss', function () {
+      if (lastFiles && lastFiles.length > 1) shareFiles(lastFiles, { to: 'JWheeler@usautoforce.com' });
+      else shareLast({ to: 'JWheeler@usautoforce.com' });
+    });
+    mk('💾  Save PDF' + (hasMany ? 's' : ''), function () {
+      var items = (lastFiles && lastFiles.length) ? lastFiles : (last ? [last] : []);
+      items.forEach(function (it) { if (it) downloadBlob(it.blob, it.fname); });
+      toast('Saved' + (items.length > 1 ? ' ' + items.length + ' files' : ': ' + (items[0] ? items[0].fname : '')));
+    }, true);
     card.querySelector('.afrep-x').onclick = function () { card.remove(); };
     document.body.appendChild(card);
   }
@@ -581,8 +632,14 @@
     catch (e) { _reported = {}; }
     return _reported;
   }
-  function markReported(key) {
+  function markReported(key, clear) {
+    if (!key) return;
     var r = reported();
+    if (clear) {
+      delete r[key];
+      try { localStorage.setItem(REPORTED_KEY, JSON.stringify(r)); } catch (e) {}
+      return;
+    }
     r[key] = Date.now();
     try { localStorage.setItem(REPORTED_KEY, JSON.stringify(r)); } catch (e) {}
   }
@@ -622,6 +679,8 @@
     build: buildPdf,
     filename: filename,
     shareLast: shareLast,
+    shareFiles: shareFiles,
+    downloadBlob: downloadBlob,
     toast: toast,
     watchTraining: watchTraining,
     markReported: markReported,
