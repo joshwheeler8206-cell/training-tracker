@@ -1408,6 +1408,17 @@ function checkoffPrintBlock(tr) {
   const done = coCount(tr);
   const groups = CHECKOFF_GROUPS.map((g) => {
     const gdone = g.items.filter((it) => coItem(tr, it).date).length;
+    // The DOT Compliance review prints only the compliance initials + date —
+    // no trainee/trainer column (the initials belong to compliance alone).
+    if (g.initialsLabel) {
+      return `<h4>${esc(g.name)} (${gdone}/${g.items.length})</h4>
+      <table><tr><th>Item</th><th>${esc(coInitialsLabel(g))} Initials</th><th>Date</th></tr>
+      ${g.items.map((it) => {
+        const s = coItem(tr, it);
+        return `<tr><td>${esc(it)}</td><td>${esc((s.trainer || '').toUpperCase())}</td><td>${esc(s.date)}</td></tr>`;
+      }).join('')}
+      </table>`;
+    }
     return `<h4>${esc(g.name)} (${gdone}/${g.items.length})</h4>
       <table><tr><th>Item</th><th>Trainee Initials</th><th>${esc(coInitialsLabel(g))} Initials</th><th>Date</th></tr>
       ${g.items.map((it) => {
