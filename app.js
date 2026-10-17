@@ -1339,10 +1339,8 @@ function printHtml() {
     .sig .sigdate { font-size: 12px; font-weight: 600; height: 44px; display: flex; align-items: flex-end; }
     .print-brand { display: flex; align-items: center; gap: 12px; padding-bottom: 10px; margin-bottom: 14px; border-bottom: 2px solid #7c3aed; }
     .print-brand img { height: 44px; width: auto; border-radius: 6px; }
-    .pb-eyebrow { font-size: 10px; font-weight: bold; letter-spacing: 1.8px; text-transform: uppercase; color: #7c3aed; }
-    .pb-eyebrow + h1 { margin: 1px 0 0; }
   </style></head><body>
-    <div class="print-brand"><img src="${AF_LOGO}" alt="U.S. AutoForce"><div><div class="pb-eyebrow">U.S. AutoForce</div><h1>Driver Training Record</h1></div></div>
+    <div class="print-brand"><img src="${AF_LOGO}" alt="U.S. AutoForce"><div><h1>Driver Training Record</h1></div></div>
     <div class="sub">Generated ${today} · U.S. AutoForce · New-Hire Onboarding</div>
     <h2>All Trainees</h2>
     <table>
@@ -1522,7 +1520,6 @@ function afTrainSpec(tr) {
     footnotes.push('Region ' + region + ' contacts: ' + REGION_CONTACTS[region].join(', '));
   }
   footnotes.push('The driver file must be complete and signed off before the driver goes on the road alone.');
-  footnotes.push('Generated ' + todayISO() + ' · U.S. AutoForce · Field Operations');
   return {
     kind: 'New Hire',
     name: tr.name || 'Trainee',
